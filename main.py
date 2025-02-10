@@ -17,8 +17,5 @@ if __name__ == "__main__":
 
     wot_api_fetcher = WotClanDataFetcher(getenv("WG_API_KEY"), getenv("CLAN_ID"))
     wot_api_fetcher.print_members_data()
-
-    for rank, players in wot_api_fetcher.group_members_by_role().items():
-        print(f"RANK: {rank}")
-        for player in players:
-            print(f"Account Name: {player.account_name}")
+    wot_api_fetcher.print_roles_count()
+    wot_api_fetcher.print_grouped_members_by_role()

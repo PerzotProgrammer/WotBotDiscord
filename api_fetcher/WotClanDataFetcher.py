@@ -91,7 +91,8 @@ class WotClanDataFetcher:
     ############################################################
     def print_members_data(self) -> None:
         for player in self.players:
-            print(f"Account Name: {player.account_name}\tAccount ID: {player.account_id}\tRole: {player.role}")
+            debug_print(f"DATA: Account Name: {player.account_name}\tAccount ID: {player.account_id}\tRole: {player.role}",
+                        colorama.Fore.BLUE)
         debug_print("INFO: Done printing all members data.", colorama.Fore.CYAN)
 
     ############################################################
@@ -100,7 +101,7 @@ class WotClanDataFetcher:
     def print_roles_count(self) -> None:
         roles = self.get_roles_count()
         for role, count in roles.items():
-            debug_print(f"Role: {role}\tCount: {count}", colorama.Fore.BLUE)
+            debug_print(f"DATA: Role: {role}\tCount: {count}", colorama.Fore.BLUE)
         debug_print("INFO: Done printing all roles count.", colorama.Fore.CYAN)
 
     ############################################################
@@ -109,8 +110,8 @@ class WotClanDataFetcher:
     def print_grouped_members_by_role(self) -> None:
         roles = self.group_members_by_role()
         for role, players in roles.items():
-            debug_print(f"Role: {role}", colorama.Fore.BLUE)
+            debug_print(f"DATA: Role: {role}", colorama.Fore.BLUE)
             for player in players:
-                debug_print(f"Account Name: {player.account_name}", colorama.Fore.BLUE)
+                debug_print(f"DATA: Account Name: {player.account_name}", colorama.Fore.BLUE)
         debug_print("INFO: Done printing all members grouped by role.", colorama.Fore.CYAN)
     # endregion
