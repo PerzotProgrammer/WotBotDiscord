@@ -1,10 +1,12 @@
 from os import getenv
 
 import colorama
+import discord
 from dotenv import load_dotenv
 
 from api_fetcher.WotClanDataFetcher import WotClanDataFetcher
-from api_fetcher.utils import debug_print
+from utils import debug_print
+from bot.DiscordBot import DiscordBot
 
 #################################################
 # NOTE: To run this bot you need to have a .env file in the root directory with the following variables:
@@ -15,7 +17,9 @@ if __name__ == "__main__":
     debug_print("INFO: Initializing...", colorama.Fore.CYAN)
     load_dotenv()
 
+    intents = discord.Intents.default()
+    intents.message_content = True
+
     wot_api_fetcher = WotClanDataFetcher(getenv("WG_API_KEY"), getenv("CLAN_ID"))
-    wot_api_fetcher.print_members_data()
-    wot_api_fetcher.print_roles_count()
-    wot_api_fetcher.print_grouped_members_by_role()
+    bot = DiscordBot(intents=intents, wot_api_fetcher=wot_api_fetcher)
+    bot.run(getenv("DISCORD_BOT_TOKEN"))

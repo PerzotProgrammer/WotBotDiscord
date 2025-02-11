@@ -1,8 +1,8 @@
 import colorama
 import requests
 
-from api_fetcher.utils import handle_status_codes, debug_print
 from data_models.ClanPlayerData import ClanPlayerData
+from utils import handle_status_codes, debug_print
 
 
 class WotClanDataFetcher:
@@ -35,7 +35,9 @@ class WotClanDataFetcher:
         response = requests.get(
             f"{self.url}clans/info/?application_id={self.wg_api_key}&clan_id={self.clan_id}&fields=members")
 
-        if handle_status_codes(response) != 200:
+        code = handle_status_codes(response)
+        if code != 200:
+            debug_print(f"ERROR: Could not fetch clan members. Response code: {code}", colorama.Fore.RED)
             return []
 
         members_list = response.json()["data"][self.clan_id]["members"]
@@ -44,6 +46,7 @@ class WotClanDataFetcher:
             self.players.append(ClanPlayerData(member["account_name"],
                                                member["account_id"],
                                                member["role"]))
+        debug_print(f"INFO: Clan members fetched, {len(self.players)} results.", colorama.Fore.CYAN)
         return self.players
 
     # endregion
@@ -91,8 +94,9 @@ class WotClanDataFetcher:
     ############################################################
     def print_members_data(self) -> None:
         for player in self.players:
-            debug_print(f"DATA: Account Name: {player.account_name}\tAccount ID: {player.account_id}\tRole: {player.role}",
-                        colorama.Fore.BLUE)
+            debug_print(
+                f"DATA: Account Name: {player.account_name}\tAccount ID: {player.account_id}\tRole: {player.role}",
+                colorama.Fore.BLUE)
         debug_print("INFO: Done printing all members data.", colorama.Fore.CYAN)
 
     ############################################################
