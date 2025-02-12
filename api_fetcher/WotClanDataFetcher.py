@@ -26,11 +26,7 @@ class WotClanDataFetcher:
         debug_print("INFO: WotClanDataFetcher initialized.", colorama.Fore.CYAN)
 
     # region API fetching methods
-    ############################################################
-    # Fetches the clan members from the WG API. If no clan_id is provided, it will use the clan_id from the .env file.
-    # Returns a list of ClanPlayerData objects and makes a copy in self.players.
-    # API CALL: https://api.worldoftanks.eu/wot/clans/info/?application_id=APP_ID_HERE&clan_id=CLAN_ID_HERE&fields=members
-    ############################################################
+    
     def fetch_clan_members(self) -> list[ClanPlayerData]:
         response = requests.get(
             f"{self.url}clans/info/?application_id={self.wg_api_key}&clan_id={self.clan_id}&fields=members")
@@ -52,9 +48,6 @@ class WotClanDataFetcher:
     # endregion
     # region Get data methods
 
-    ############################################################
-    # Finds a player in the players list by account_name.
-    ############################################################
     def find_player_data(self, account_name) -> ClanPlayerData | None:
         for player in self.players:
             if player.account_name == account_name:
@@ -62,9 +55,6 @@ class WotClanDataFetcher:
         debug_print("WARNING: Player not found in players. Maybe the player is not in the clan?", colorama.Fore.YELLOW)
         return None
 
-    ############################################################
-    # Tells how many of what rank players are in clan.
-    ############################################################
     def get_roles_count(self) -> dict[str, int]:
         roles = {}
         for player in self.players:
@@ -74,9 +64,6 @@ class WotClanDataFetcher:
                 roles[player.role] = 1
         return roles
 
-    ############################################################
-    # Groups the players by role.
-    ############################################################
     def group_members_by_role(self) -> dict[str, list[ClanPlayerData]]:
         roles = {}
         for player in self.players:
@@ -89,9 +76,6 @@ class WotClanDataFetcher:
     # endregion
     # region Debugging methods
 
-    ############################################################
-    # Prints all members data to console. (for debugging purposes)
-    ############################################################
     def print_members_data(self) -> None:
         for player in self.players:
             debug_print(
@@ -99,18 +83,12 @@ class WotClanDataFetcher:
                 colorama.Fore.BLUE)
         debug_print("INFO: Done printing all members data.", colorama.Fore.CYAN)
 
-    ############################################################
-    # Prints all roles and their counts to console. (for debugging purposes)
-    ############################################################
     def print_roles_count(self) -> None:
         roles = self.get_roles_count()
         for role, count in roles.items():
             debug_print(f"DATA: Role: {role}\tCount: {count}", colorama.Fore.BLUE)
         debug_print("INFO: Done printing all roles count.", colorama.Fore.CYAN)
 
-    ############################################################
-    # Prints all members grouped by role to console. (for debugging purposes)
-    ############################################################
     def print_grouped_members_by_role(self) -> None:
         roles = self.group_members_by_role()
         for role, players in roles.items():
