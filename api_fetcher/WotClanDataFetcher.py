@@ -1,8 +1,10 @@
+import asyncio
+
+import aiohttp
 import colorama
-import requests
 
 from data_models.ClanPlayerData import ClanPlayerData
-from utils import handle_status_codes, debug_print
+from utils import handle_internal_status_codes, debug_print
 
 
 class WotClanDataFetcher:
@@ -22,27 +24,30 @@ class WotClanDataFetcher:
             debug_print("WARNING: You must specify the clan_id when calling the fetch_clan_members method.",
                         colorama.Fore.YELLOW)
         else:
-            self.players = self.fetch_clan_members()
+            self.players = asyncio.run(self.fetch_clan_members())
         debug_print("INFO: WotClanDataFetcher initialized.", colorama.Fore.CYAN)
 
     # region API fetching methods
-    
-    def fetch_clan_members(self) -> list[ClanPlayerData]:
-        response = requests.get(
-            f"{self.url}clans/info/?application_id={self.wg_api_key}&clan_id={self.clan_id}&fields=members")
 
-        code = handle_status_codes(response)
-        if code != 200:
-            debug_print(f"ERROR: Could not fetch clan members. Response code: {code}", colorama.Fore.RED)
-            return []
+    async def fetch_clan_members(self) -> list[ClanPlayerData] | None:
+        async with aiohttp.ClientSession() as self.session:
+            async with self.session.get(
+                    f"{self.url}clans/info/?application_id={self.wg_api_key}&clan_id={self.clan_id}&fields=members") as response:
 
-        members_list = response.json()["data"][self.clan_id]["members"]
-        self.players = []
-        for member in members_list:
-            self.players.append(ClanPlayerData(member["account_name"],
-                                               member["account_id"],
-                                               member["role"]))
-        debug_print(f"INFO: Clan members fetched, {len(self.players)} results.", colorama.Fore.CYAN)
+                code = await handle_internal_status_codes(response)
+                if code != 200:
+                    debug_print(f"ERROR: Could not fetch clan members. Response code: {code}", colorama.Fore.RED)
+                    return None
+
+                data = await response.json()
+
+                members_list = data["data"][self.clan_id]["members"]
+                self.players = []
+                for member in members_list:
+                    self.players.append(ClanPlayerData(member["account_name"],
+                                                       member["account_id"],
+                                                       member["role"]))
+                debug_print(f"INFO: Clan members fetched, {len(self.players)} results.", colorama.Fore.CYAN)
         return self.players
 
     # endregion

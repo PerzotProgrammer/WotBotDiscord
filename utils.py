@@ -1,21 +1,23 @@
 import datetime
 
+import aiohttp
 import colorama
-import requests
+from aiohttp import ClientResponse
 
 from globals import do_not_print_debug_messages
 
 
-def handle_status_codes(response) -> int:
+async def handle_internal_status_codes(response: ClientResponse) -> int:
     try:
         response.raise_for_status()
-    except requests.exceptions.HTTPError as e:
+    except aiohttp.ClientResponseError as e:
         debug_print(f"ERROR: {e}", colorama.Fore.RED)
 
-    status_code = response.json()['error']["code"] if "error" in response.json() else response.status_code
+    data = await response.json()
+    status_code = data['error']["code"] if "error" in data else response.status
 
     if status_code != 200:
-        debug_print(f"ERROR: {response.json()['error']['message']}", colorama.Fore.RED)
+        debug_print(f"ERROR: {data['error']['message']}", colorama.Fore.RED)
     return status_code
 
 
