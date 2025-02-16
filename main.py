@@ -16,6 +16,11 @@ if __name__ == "__main__":
     debug_print("INFO: Initializing...", colorama.Fore.CYAN)
     load_dotenv()
 
+    if getenv("WG_API_KEY") == "":
+        debug_print("ERROR: No WG_API_KEY found in .env file. THIS PROGRAM CANT RUN WITHOUT IT! Exiting...",
+                    colorama.Fore.RED)
+        exit(1)
+
     intents = discord.Intents.default()
     intents.message_content = True
     bot = DiscordBot(intents=intents)

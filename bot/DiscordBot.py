@@ -2,14 +2,17 @@ import colorama
 from discord import Intents, Message
 from discord.ext import commands
 
-from bot.ChatInteractionsHandler import ChatInteractionsHandler
-from bot.ClanCommandsHandler import ClanCommandsHandler
+from bot.handlers.ChatInteractionsHandler import ChatInteractionsHandler
+from bot.handlers.ClanCommandsHandler import ClanCommandsHandler
+from bot.handlers.PlayerCommandsHandler import PlayerCommandsHandler
 from utils import debug_print
 
 
 class DiscordBot(commands.Bot):
     def __init__(self, intents: Intents):
         super().__init__(command_prefix='!', intents=intents)
+
+        self.player_commands = PlayerCommandsHandler()
         self.clan_commands = ClanCommandsHandler()
         self.chat_handler = ChatInteractionsHandler()
 
@@ -26,6 +29,10 @@ class DiscordBot(commands.Bot):
         # @self.command(name="register")
         # async def register(context, dc_nick, wot_nick):
         #     await context.send("This currently doesn't work")
+
+        @self.command(name="playerInfo")
+        async def player_info(context, player_name):
+            await self.player_commands.player_info(context, player_name)
 
         @self.command(name="showMembers")
         async def show_members(context):

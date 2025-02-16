@@ -25,3 +25,7 @@ def debug_print(message: str, fore_color: colorama.Fore) -> None:
     if do_not_print_debug_messages:
         return
     print(f"{fore_color}{datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")} - {message}{colorama.Style.RESET_ALL}")
+
+
+def timestamp_to_date(timestamp: int) -> str:
+    return datetime.datetime.fromtimestamp(timestamp).strftime('%Y-%m-%d %H:%M:%S')

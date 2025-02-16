@@ -9,19 +9,15 @@ from utils import handle_internal_status_codes, debug_print
 
 class WotClanDataFetcher:
     def __init__(self, wg_api_key, clan_id):
-        self.url = "https://api.worldoftanks.eu/wot/"
+        self.url = "https://api.worldoftanks.eu/wot/clans"
         self.wg_api_key = wg_api_key
         self.clan_id = clan_id
         self.players = list[ClanPlayerData]
 
-        if self.wg_api_key == "":
-            debug_print("ERROR: No WG_API_KEY found in .env file. THIS PROGRAM CANT RUN WITHOUT IT! Exiting...",
-                        colorama.Fore.RED)
-            exit(1)
         if self.clan_id == "":
-            debug_print("WARNING: No CLAN_ID found in .env file. Players will not be pre-fetched!",
+            debug_print("WARN: No CLAN_ID found in .env file. Players will not be pre-fetched!",
                         colorama.Fore.YELLOW)
-            debug_print("WARNING: You must specify the clan_id when calling the fetch_clan_members method.",
+            debug_print("WARN: You must specify the clan_id when calling the fetch_clan_members method.",
                         colorama.Fore.YELLOW)
         else:
             self.players = asyncio.run(self.fetch_clan_members())
@@ -32,7 +28,7 @@ class WotClanDataFetcher:
     async def fetch_clan_members(self) -> list[ClanPlayerData] | None:
         async with aiohttp.ClientSession() as self.session:
             async with self.session.get(
-                    f"{self.url}clans/info/?application_id={self.wg_api_key}&clan_id={self.clan_id}&fields=members") as response:
+                    f"{self.url}/info/?application_id={self.wg_api_key}&clan_id={self.clan_id}&fields=members") as response:
 
                 code = await handle_internal_status_codes(response)
                 if code != 200:
@@ -57,7 +53,7 @@ class WotClanDataFetcher:
         for player in self.players:
             if player.account_name == account_name:
                 return player
-        debug_print("WARNING: Player not found in players. Maybe the player is not in the clan?", colorama.Fore.YELLOW)
+        debug_print("WARN: Player not found in players. Maybe the player is not in the clan?", colorama.Fore.YELLOW)
         return None
 
     def get_roles_count(self) -> dict[str, int]:
