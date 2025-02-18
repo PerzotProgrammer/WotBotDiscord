@@ -1,18 +1,19 @@
 from random import randint
 
-import colorama
 from discord import Message
+from singleton_decorator import singleton
 
-from utils import debug_print
+from utils import debug_print, LogType
 
 
+@singleton
 class ChatInteractionsHandler:
     def __init__(self):
         self.arty_words = ["arta", "arty"]
         self.arty_respond = ["You sink!", "WTH", "💩", "...", "Bój ci w lufę!"]
 
     async def handle_chat(self, message: Message) -> None:
-        debug_print(f"INFO: Message received: {message.content}", colorama.Fore.CYAN)
+        debug_print(f"Message received: {message.content}", LogType.INFO)
         await self.handle_arty_on_chat(message)
 
     async def handle_arty_on_chat(self, message: Message) -> None:
@@ -25,5 +26,5 @@ class ChatInteractionsHandler:
 
     @staticmethod
     async def chat_test(context):
-        await context.send("Everything is fine!")
-        debug_print(f"INFO: Test command executed.", colorama.Fore.CYAN)
+        await context.send("# Everything is fine!")
+        debug_print(f"Test command executed.", LogType.INFO)

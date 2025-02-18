@@ -1,9 +1,12 @@
 from os import getenv
 
+from singleton_decorator import singleton
+
 from api_fetcher.WotPlayerDataFetcher import WotPlayerDataFetcher
 from utils import timestamp_to_date
 
 
+@singleton
 class PlayerCommandsHandler:
     def __init__(self):
         self.wot_player_data_fetcher = WotPlayerDataFetcher(getenv("WG_API_KEY"))

@@ -1,12 +1,13 @@
 import asyncio
 
 import aiohttp
-import colorama
+from singleton_decorator import singleton
 
 from data_models.ClanPlayerData import ClanPlayerData
-from utils import handle_internal_status_codes, debug_print
+from utils import handle_internal_status_codes, debug_print, LogType
 
 
+@singleton
 class WotClanDataFetcher:
     def __init__(self, wg_api_key, clan_id):
         self.url = "https://api.worldoftanks.eu/wot/clans"
@@ -15,13 +16,13 @@ class WotClanDataFetcher:
         self.players = list[ClanPlayerData]
 
         if self.clan_id == "":
-            debug_print("WARN: No CLAN_ID found in .env file. Players will not be pre-fetched!",
-                        colorama.Fore.YELLOW)
-            debug_print("WARN: You must specify the clan_id when calling the fetch_clan_members method.",
-                        colorama.Fore.YELLOW)
+            debug_print("No CLAN_ID found in .env file. Players will not be pre-fetched!",
+                        LogType.WARNING)
+            debug_print("You must specify the clan_id when calling the fetch_clan_members method.",
+                        LogType.WARNING)
         else:
             self.players = asyncio.run(self.fetch_clan_members())
-        debug_print("INFO: WotClanDataFetcher initialized.", colorama.Fore.CYAN)
+        debug_print("wot_nameWotClanDataFetcher initialized.", LogType.INFO)
 
     # region API fetching methods
 
@@ -32,7 +33,7 @@ class WotClanDataFetcher:
 
                 code = await handle_internal_status_codes(response)
                 if code != 200:
-                    debug_print(f"ERROR: Could not fetch clan members. Response code: {code}", colorama.Fore.RED)
+                    debug_print(f"Could not fetch clan members. Response code: {code}", LogType.ERROR)
                     return None
 
                 data = await response.json()
@@ -43,7 +44,7 @@ class WotClanDataFetcher:
                     self.players.append(ClanPlayerData(member["account_name"],
                                                        member["account_id"],
                                                        member["role"]))
-                debug_print(f"INFO: Clan members fetched, {len(self.players)} results.", colorama.Fore.CYAN)
+                debug_print(f"wot_nameClan members fetched, {len(self.players)} results.", LogType.INFO)
         return self.players
 
     # endregion
@@ -53,7 +54,7 @@ class WotClanDataFetcher:
         for player in self.players:
             if player.account_name == account_name:
                 return player
-        debug_print("WARN: Player not found in players. Maybe the player is not in the clan?", colorama.Fore.YELLOW)
+        debug_print("Player not found in players. Maybe the player is not in the clan?", LogType.WARNING)
         return None
 
     def get_roles_count(self) -> dict[str, int]:
@@ -80,21 +81,21 @@ class WotClanDataFetcher:
     def print_members_data(self) -> None:
         for player in self.players:
             debug_print(
-                f"DATA: Account Name: {player.account_name}\tAccount ID: {player.account_id}\tRole: {player.role}",
-                colorama.Fore.BLUE)
-        debug_print("INFO: Done printing all members data.", colorama.Fore.CYAN)
+                f"Account Name: {player.account_name}\tAccount ID: {player.account_id}\tRole: {player.role}",
+                LogType.DATA)
+        debug_print("Done printing all members data.", LogType.INFO)
 
     def print_roles_count(self) -> None:
         roles = self.get_roles_count()
         for role, count in roles.items():
-            debug_print(f"DATA: Role: {role}\tCount: {count}", colorama.Fore.BLUE)
-        debug_print("INFO: Done printing all roles count.", colorama.Fore.CYAN)
+            debug_print(f"Role: {role}\tCount: {count}", LogType.DATA)
+        debug_print("Done printing all roles count.", LogType.INFO)
 
     def print_grouped_members_by_role(self) -> None:
         roles = self.group_members_by_role()
         for role, players in roles.items():
-            debug_print(f"DATA: Role: {role}", colorama.Fore.BLUE)
+            debug_print(f"Role: {role}", LogType.DATA)
             for player in players:
-                debug_print(f"DATA: Account Name: {player.account_name}", colorama.Fore.BLUE)
-        debug_print("INFO: Done printing all members grouped by role.", colorama.Fore.CYAN)
+                debug_print(f"Account Name: {player.account_name}", LogType.DATA)
+        debug_print("Done printing all members grouped by role.", LogType.INFO)
     # endregion

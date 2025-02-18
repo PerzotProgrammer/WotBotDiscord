@@ -1,11 +1,11 @@
 from os import getenv
 
-import colorama
 import discord
 from dotenv import load_dotenv
 
 from bot.DiscordBot import DiscordBot
-from utils import debug_print
+from database.DatabaseConnector import DatabaseConnector
+from utils import debug_print, LogType
 
 #################################################
 # NOTE: To run this bot you need to have a .env file in the root directory with the following variables:
@@ -13,14 +13,15 @@ from utils import debug_print
 # CLAN_ID=YOUR_CLAN_ID
 
 if __name__ == "__main__":
-    debug_print("INFO: Initializing...", colorama.Fore.CYAN)
+    debug_print("Initializing...", LogType.INFO)
     load_dotenv()
 
     if getenv("WG_API_KEY") == "":
-        debug_print("ERROR: No WG_API_KEY found in .env file. THIS PROGRAM CANT RUN WITHOUT IT! Exiting...",
-                    colorama.Fore.RED)
+        debug_print("No WG_API_KEY found in .env file. THIS PROGRAM CANT RUN WITHOUT IT! Exiting...",
+                    LogType.ERROR)
         exit(1)
 
+    DatabaseConnector("./database/database.db")
     intents = discord.Intents.default()
     intents.message_content = True
     bot = DiscordBot(intents=intents)

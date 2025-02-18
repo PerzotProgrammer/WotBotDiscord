@@ -1,13 +1,14 @@
-import colorama
 from discord import Intents, Message
 from discord.ext import commands
+from singleton_decorator import singleton
 
 from bot.handlers.ChatInteractionsHandler import ChatInteractionsHandler
 from bot.handlers.ClanCommandsHandler import ClanCommandsHandler
 from bot.handlers.PlayerCommandsHandler import PlayerCommandsHandler
-from utils import debug_print
+from utils import debug_print, LogType
 
 
+@singleton
 class DiscordBot(commands.Bot):
     def __init__(self, intents: Intents):
         super().__init__(command_prefix='!', intents=intents)
@@ -16,7 +17,7 @@ class DiscordBot(commands.Bot):
         self.clan_commands = ClanCommandsHandler()
         self.chat_handler = ChatInteractionsHandler()
 
-        debug_print("INFO: Bot is running!...", colorama.Fore.CYAN)
+        debug_print("Bot is running!...", LogType.INFO)
 
         @self.command(name="test")
         async def test(context):
@@ -26,9 +27,9 @@ class DiscordBot(commands.Bot):
         async def arty(context):
             await context.send(self.chat_handler.roll_arty_respond())
 
-        # @self.command(name="register")
-        # async def register(context, dc_nick, wot_nick):
-        #     await context.send("This currently doesn't work")
+        @self.command(name="register")
+        async def register(context, wot_nick, discord_at_id):
+            await self.clan_commands.register(context, wot_nick, discord_at_id)
 
         @self.command(name="playerInfo")
         async def player_info(context, player_name):
