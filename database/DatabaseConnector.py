@@ -88,7 +88,7 @@ class DatabaseConnector:
                 debug_print(f"Discord user already registered. {discord_user.name}", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.ALREADY_EXISTS)
 
-            blob = self.cursor.execute(f"SELECT player_id FROM wot_players WHERE wot_name = '{wot_name}'").fetchone()
+            blob = self.cursor.execute(f"SELECT id FROM wot_players WHERE wot_name = '{wot_name}'").fetchone()
             if blob is None:
                 debug_print(f"Player not found in database. {wot_name}", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.NOT_FOUND)

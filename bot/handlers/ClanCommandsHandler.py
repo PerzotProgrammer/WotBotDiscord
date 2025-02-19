@@ -72,7 +72,7 @@ class ClanCommandsHandler:
         dbError = await self.databaseConnector.add_discord_user_ref(wot_nick, discord_user)
         if dbError != DatabaseResultCode.OK:
             if dbError == DatabaseResultCode.ALREADY_EXISTS:
-                await context.send(f"Player `{wot_nick}` was already registered!")
+                await context.send(f"User `{discord_user.name}` was already registered!")
             if dbError == DatabaseResultCode.NOT_FOUND:
                 await context.send(f"Player `{wot_nick}` not found in database.\n Run !clanRefresh command manually.")
             return
