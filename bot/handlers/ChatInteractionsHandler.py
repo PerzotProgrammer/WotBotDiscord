@@ -1,6 +1,7 @@
 from random import randint
 
 from discord import Message
+from discord.ext.commands import Context
 from singleton_decorator import singleton
 
 from utils import debug_print, LogType
@@ -19,12 +20,12 @@ class ChatInteractionsHandler:
     async def handle_arty_on_chat(self, message: Message) -> None:
         for arty_word in self.arty_words:
             if arty_word in str(message.content):
-                await message.channel.send(self.roll_arty_respond())
+                await message.reply(self.roll_arty_respond())
 
     def roll_arty_respond(self) -> str:
         return self.arty_respond[randint(0, len(self.arty_respond) - 1)]
 
     @staticmethod
-    async def chat_test(context):
-        await context.send("# Everything is fine!")
+    async def chat_test(context: Context):
+        await context.message.reply("# Everything is fine!")
         debug_print(f"Test command executed.", LogType.INFO)
