@@ -21,7 +21,8 @@ class WotClanDataFetcher:
             debug_print("You must specify the clan_id when calling the fetch_clan_members method.",
                         LogType.WARNING)
         else:
-            self.players = asyncio.run(self.fetch_clan_members())
+            pass
+            # self.players = asyncio.run(self.fetch_clan_members())
         debug_print("wot_nameWotClanDataFetcher initialized.", LogType.INFO)
 
     # region API fetching methods

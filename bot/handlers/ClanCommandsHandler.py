@@ -94,6 +94,8 @@ class ClanCommandsHandler:
                 await context.send("You are already registered to the newest advance.")
             if dbError == DatabaseResultCode.NOT_FOUND:
                 await context.send("You are not linked to any player.")
+            if dbError == DatabaseResultCode.FORBIDDEN:
+                await context.send("You can't register to advance. Newest advance is older than 15 minutes.")
             return
         await context.send("Registered to the newest advance!")
 

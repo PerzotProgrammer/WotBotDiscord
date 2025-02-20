@@ -34,7 +34,7 @@ class DatabaseConnector:
                 return DatabaseResultCode(DatabaseResultCode.FORBIDDEN)
 
             self.cursor.execute(
-                f"INSERT INTO wot_advances (date, invoked_by) VALUES ('{datetime.now().timestamp()}','{invoker_discord_id}')")
+                f"INSERT INTO wot_advances (date, invoked_by) VALUES ('{int(datetime.now().timestamp())}','{invoker_discord_id}')")
             self.connection.commit()
         except sqlite3.Error as e:
             debug_print(f"Could not add advance. {e}", LogType.ERROR)
@@ -104,7 +104,17 @@ class DatabaseConnector:
 
     async def register_discord_user_to_adv(self, discord_user: discord.User) -> DatabaseResultCode:
         try:
-            newestAdvId = self.cursor.execute("SELECT id FROM wot_advances ORDER BY date DESC LIMIT 1").fetchone()[0]
+            blob = self.cursor.execute(
+                "SELECT id, wot_advances.date FROM wot_advances ORDER BY id DESC LIMIT 1").fetchone()
+
+            newestAdvId = blob[0]
+            newestAdvDate = blob[1]
+
+            advMaxAge = 60 * 15  # 15 minutes
+
+            if int(datetime.now().timestamp()) - int(newestAdvDate) > advMaxAge:
+                debug_print("Newest advance is older than 15 hour.", LogType.WARNING)
+                return DatabaseResultCode(DatabaseResultCode.FORBIDDEN)
 
             player_id = \
                 self.cursor.execute(
