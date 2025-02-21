@@ -1,4 +1,5 @@
 import sqlite3
+import time
 from datetime import datetime
 from enum import Enum
 
@@ -28,13 +29,13 @@ class DatabaseConnector:
     async def add_advance(self, invoker_discord_id: str) -> DatabaseResultCode:
         try:
             self.cursor.execute(
-                f"SELECT role FROM wot_players INNER JOIN discord_users_ids ON wot_players.id = discord_users_ids.player_id WHERE discord_id = {invoker_discord_id}", )
+                f"SELECT role FROM wot_players INNER JOIN discord_users ON wot_players.pid = discord_users.pid WHERE uid = {invoker_discord_id}", )
             blob = self.cursor.fetchone()
             if blob is None or blob[0] not in clan_staff_ranks:
                 return DatabaseResultCode(DatabaseResultCode.FORBIDDEN)
 
             self.cursor.execute(
-                f"INSERT INTO wot_advances (date, invoked_by) VALUES ('{int(datetime.now().timestamp())}','{invoker_discord_id}')")
+                f"INSERT INTO wot_advances (date, invoker_uid) VALUES ('{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}','{invoker_discord_id}')")
             self.connection.commit()
         except sqlite3.Error as e:
             debug_print(f"Could not add advance. {e}", LogType.ERROR)
@@ -43,13 +44,13 @@ class DatabaseConnector:
 
     async def add_clan_member(self, playerData: ClanPlayerData) -> DatabaseResultCode:
         try:
-            self.cursor.execute(f"SELECT wot_id FROM wot_players WHERE wot_id = '{playerData.account_id}'")
+            self.cursor.execute(f"SELECT pid FROM wot_players WHERE pid = '{playerData.account_id}'")
 
             if self.cursor.fetchone() is not None:
                 return DatabaseResultCode(DatabaseResultCode.ALREADY_EXISTS)
 
             self.cursor.execute(
-                f"INSERT INTO wot_players (wot_id, wot_name, role) "
+                f"INSERT INTO wot_players (pid, wot_name, role) "
                 f"VALUES ('{playerData.account_id}', '{playerData.account_name}', '{playerData.role}')")
             self.connection.commit()
 
@@ -60,7 +61,7 @@ class DatabaseConnector:
 
     async def update_rank(self, playerData: ClanPlayerData) -> DatabaseResultCode:
         try:
-            self.cursor.execute(f"SELECT role FROM wot_players WHERE wot_id = '{playerData.account_id}'")
+            self.cursor.execute(f"SELECT role FROM wot_players WHERE pid = '{playerData.account_id}'")
             blob = self.cursor.fetchone()
             if blob is None:
                 debug_print(f"Player not found in database. {playerData.account_name}", LogType.WARNING)
@@ -71,7 +72,7 @@ class DatabaseConnector:
                 return DatabaseResultCode(DatabaseResultCode.SKIPPED)
 
             self.cursor.execute(
-                f"UPDATE wot_players SET role = '{playerData.role}' WHERE wot_id = '{playerData.account_id}'")
+                f"UPDATE wot_players SET role = '{playerData.role}' WHERE pid = '{playerData.account_id}'")
             self.connection.commit()
 
         except sqlite3.Error as e:
@@ -82,19 +83,19 @@ class DatabaseConnector:
 
     async def add_discord_user_ref(self, wot_name: str, discord_user: discord.User) -> DatabaseResultCode:
         try:
-            self.cursor.execute(f"SELECT discord_id FROM discord_users_ids WHERE discord_id = '{discord_user.id}'")
+            self.cursor.execute(f"SELECT uid FROM discord_users WHERE uid = '{discord_user.id}'")
 
             if self.cursor.fetchone() is not None:
                 debug_print(f"Discord user already registered. {discord_user.name}", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.ALREADY_EXISTS)
 
-            blob = self.cursor.execute(f"SELECT id FROM wot_players WHERE wot_name = '{wot_name}'").fetchone()
+            blob = self.cursor.execute(f"SELECT pid FROM wot_players WHERE wot_name = '{wot_name}'").fetchone()
             if blob is None:
                 debug_print(f"Player not found in database. {wot_name}", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.NOT_FOUND)
 
             self.cursor.execute(
-                f"Insert INTO discord_users_ids (discord_id, discord_name, player_id) VALUES ('{discord_user.id}' ,'{discord_user.name}','{blob[0]}')")
+                f"Insert INTO discord_users (uid, discord_name, pid) VALUES ('{discord_user.id}' ,'{discord_user.name}','{blob[0]}')")
             self.connection.commit()
 
         except sqlite3.Error as e:
@@ -112,26 +113,29 @@ class DatabaseConnector:
 
             advMaxAge = 60 * 15  # 15 minutes
 
-            if int(datetime.now().timestamp()) - int(newestAdvDate) > advMaxAge:
+            if (int(datetime.now().timestamp()) -
+                    int(time.mktime(
+                        datetime.strptime(newestAdvDate, '%Y-%m-%d %H:%M:%S')
+                                .timetuple())) > advMaxAge):
                 debug_print("Newest advance is older than 15 hour.", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.FORBIDDEN)
 
             player_id = \
                 self.cursor.execute(
-                    f"SELECT player_id FROM discord_users_ids WHERE discord_id = '{discord_user.id}'").fetchone()[0]
+                    f"SELECT pid FROM discord_users WHERE uid = '{discord_user.id}'").fetchone()[0]
 
             if player_id is None:
                 debug_print(f"{discord_user.name} is not linked to any player.", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.NOT_FOUND)
 
             blob = self.cursor.execute(
-                f"SELECT id FROM wot_advances_players WHERE advance_id = '{newestAdvId}' AND player_id = '{player_id}'").fetchone()
+                f"SELECT id FROM wot_advances_players WHERE advance_id = '{newestAdvId}' AND pid = '{player_id}'").fetchone()
             if blob is not None:
                 debug_print(f"Player already registered to newest advance. {discord_user.name}", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.ALREADY_EXISTS)
 
             self.cursor.execute(
-                f"INSERT INTO wot_advances_players (advance_id, player_id) VALUES ('{newestAdvId}','{player_id}')")
+                f"INSERT INTO wot_advances_players (advance_id, pid) VALUES ('{newestAdvId}','{player_id}')")
             self.connection.commit()
 
         except sqlite3.Error as e:
@@ -142,7 +146,7 @@ class DatabaseConnector:
     async def get_wot_nick_from_discord_id(self, discord_id: str) -> str | None:
         try:
             self.cursor.execute(
-                f"SELECT wot_name FROM wot_players INNER JOIN discord_users_ids ON wot_players.id = discord_users_ids.player_id WHERE discord_id = {discord_id}")
+                f"SELECT wot_name FROM wot_players INNER JOIN discord_users ON wot_players.pid = discord_users.pid WHERE uid = {discord_id}")
             blob = self.cursor.fetchone()
             if blob is None:
                 return None
