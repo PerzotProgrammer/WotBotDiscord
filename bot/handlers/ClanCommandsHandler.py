@@ -2,6 +2,7 @@ import datetime
 from os import getenv
 
 import discord
+from discord.ext import commands
 from discord.ext.commands import Context
 from singleton_decorator import singleton
 
@@ -10,11 +11,13 @@ from database.DatabaseConnector import DatabaseConnector, DatabaseResultCode
 
 
 @singleton
-class ClanCommandsHandler:
-    def __init__(self):
+class ClanCommandsHandler(commands.Cog, name="Clan Commands"):
+    def __init__(self, bot):
         self.wot_clan_data_fetcher = WotClanDataFetcher(getenv("WG_API_KEY"), getenv("CLAN_ID"))
         self.databaseConnector = DatabaseConnector()
+        self.bot = bot
 
+    @commands.command(name="showMembers")
     async def show_members(self, context: Context):
         playersData = self.wot_clan_data_fetcher.players
         mess = "# MEMBERS IN CLAN\n"
@@ -25,6 +28,7 @@ class ClanCommandsHandler:
                 mess = ""
             mess += messBuff
 
+    @commands.command(name="rankCheck")
     async def rank_check(self, context: Context, wot_nick: str):
         for player in self.wot_clan_data_fetcher.players:
             wot_nick = wot_nick.strip("`")
@@ -34,6 +38,7 @@ class ClanCommandsHandler:
         await context.send(
             f"Player was not found in the clan.\n(if you are sure that `{wot_nick}` is in clan try running !clanRefresh command)")
 
+    @commands.command(name="clanRefresh")
     async def clan_refresh(self, context: Context):
         players = await self.wot_clan_data_fetcher.fetch_clan_members()
 
@@ -62,6 +67,7 @@ class ClanCommandsHandler:
             f"Added {added_players} players.\n" +
             f"Skipped {skipped_players} players.")
 
+    @commands.command(name="register")
     async def register(self, context: Context, wot_nick: str, discord_user: discord.User):
         wot_nick = wot_nick.strip("`")
         player = self.wot_clan_data_fetcher.find_player_data(wot_nick)
@@ -79,6 +85,7 @@ class ClanCommandsHandler:
 
         await context.send(f"Player `{wot_nick}` registered!")
 
+    @commands.command(name="addAdvance")
     async def add_advance(self, context: Context, invoker_discord_id: discord.User):
         dbError = await self.databaseConnector.add_advance(str(invoker_discord_id.id))
         if dbError != DatabaseResultCode.OK:
@@ -87,6 +94,7 @@ class ClanCommandsHandler:
             return
         await context.send(f"Advance registered at {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}!")
 
+    @commands.command(name="optForAdv")
     async def register_user_for_adv(self, context: Context, discord_user: discord.User):
         dbError = await self.databaseConnector.register_discord_user_to_adv(discord_user)
         if dbError != DatabaseResultCode.OK:
@@ -99,6 +107,7 @@ class ClanCommandsHandler:
             return
         await context.send("Registered to the newest advance!")
 
+    @commands.command(name="whoami")
     async def whoami(self, context: Context, discord_user: discord.User):
         nick = await self.databaseConnector.get_wot_nick_from_discord_id(str(discord_user.id))
         if nick is None:

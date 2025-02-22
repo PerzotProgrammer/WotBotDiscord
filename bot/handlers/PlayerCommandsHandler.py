@@ -1,5 +1,6 @@
 from os import getenv
 
+from discord.ext import commands
 from singleton_decorator import singleton
 
 from api_fetcher.WotPlayerDataFetcher import WotPlayerDataFetcher
@@ -7,10 +8,12 @@ from utils import timestamp_to_date
 
 
 @singleton
-class PlayerCommandsHandler:
-    def __init__(self):
+class PlayerCommandsHandler(commands.Cog, name="Player Commands"):
+    def __init__(self, bot):
         self.wot_player_data_fetcher = WotPlayerDataFetcher(getenv("WG_API_KEY"))
+        self.bot = bot
 
+    @commands.command(name="playerInfo")
     async def player_info(self, context, wot_nick: str):
         wot_nick = wot_nick.strip("`")
         player_data = await self.wot_player_data_fetcher.fetch_player_data(wot_nick)
