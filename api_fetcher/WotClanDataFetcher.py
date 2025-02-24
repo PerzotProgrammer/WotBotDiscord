@@ -41,16 +41,24 @@ class WotClanDataFetcher:
                 members_list = data["data"][self.clan_id]["members"]
                 self.players = []
                 for member in members_list:
-                    self.players.append(ClanPlayerData(member["account_name"],
-                                                       member["account_id"],
-                                                       member["role"]))
+                    self.players.append(ClanPlayerData(
+                        member["account_id"],
+                        member["account_name"],
+                        member["role"]))
                 debug_print(f"wot_nameClan members fetched, {len(self.players)} results.", LogType.INFO)
         return self.players
 
     # endregion
     # region Get data methods
 
-    def find_player_data(self, wot_name) -> ClanPlayerData | None:
+    def find_player_data_by_pid(self, pid) -> ClanPlayerData | None:
+        for player in self.players:
+            if player.pid == pid:
+                return player
+        debug_print("Player not found in players. Maybe the player is not in the clan?", LogType.WARNING)
+        return None
+
+    def find_player_data_by_name(self, wot_name) -> ClanPlayerData | None:
         for player in self.players:
             if player.wot_name == wot_name:
                 return player

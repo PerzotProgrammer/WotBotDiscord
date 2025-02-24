@@ -72,7 +72,8 @@ class ClanCommandsHandler(commands.Cog, name="Clan Commands"):
     @commands.command(name="register")
     async def register(self, context: Context, wot_nick: str, discord_user: discord.User):
         wot_nick = wot_nick.strip("`")
-        player = self.wot_clan_data_fetcher.find_player_data(wot_nick)
+
+        player = self.wot_clan_data_fetcher.find_player_data_by_name(wot_nick)
         if player is None:
             await context.send(f"Player `{wot_nick}` not found in clan.")
             return
@@ -151,7 +152,7 @@ class ClanCommandsHandler(commands.Cog, name="Clan Commands"):
         if pid is None:
             await context.send(f"Player linked to `{discord_user}` not found in database.")
             return
-        player = self.wot_clan_data_fetcher.find_player_data(pid)
+        player = self.wot_clan_data_fetcher.find_player_data_by_pid(pid)
 
         if player.role is None:
             await context.send(f"Player linked to `{player.wot_name}` not in the clan (or database is not refreshed).")
@@ -166,4 +167,4 @@ class ClanCommandsHandler(commands.Cog, name="Clan Commands"):
             debug_print(f"Error while giving role to user: {e}", LogType.ERROR)
             await context.send(f"Woah! Something went wrong! Check my logs!")
             return
-        await context.send(f"Role `{clan_roles_to_discord_roles[player.role]}` given to `{player.wot_name}`!")
+        await context.send(f"Role `{clan_roles_to_discord_roles[player.role]}` given to `{discord_user.name} ({player.wot_name})`!")
