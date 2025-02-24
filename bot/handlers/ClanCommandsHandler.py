@@ -8,6 +8,8 @@ from singleton_decorator import singleton
 
 from api_fetcher.WotClanDataFetcher import WotClanDataFetcher
 from database.DatabaseConnector import DatabaseConnector, DatabaseResultCode
+from globals import clan_roles_to_discord_roles, clan_staff_ranks
+from utils import debug_print, LogType
 
 
 @singleton
@@ -22,7 +24,7 @@ class ClanCommandsHandler(commands.Cog, name="Clan Commands"):
         playersData = self.wot_clan_data_fetcher.players
         mess = "# MEMBERS IN CLAN\n"
         for player in playersData:
-            messBuff = f"### player `{player.account_name}` with `{player.role}`\n"
+            messBuff = f"### player `{player.wot_name}` with `{player.role}`\n"
             if len(mess) + len(messBuff) > 2000:
                 await context.send(mess)
                 mess = ""
@@ -32,8 +34,8 @@ class ClanCommandsHandler(commands.Cog, name="Clan Commands"):
     async def rank_check(self, context: Context, wot_nick: str):
         for player in self.wot_clan_data_fetcher.players:
             wot_nick = wot_nick.strip("`")
-            if player.account_name == wot_nick:
-                await context.send(f"Player `{player.account_name}` was found in the clan with rank `{player.role}`")
+            if player.wot_name == wot_nick:
+                await context.send(f"Player `{player.wot_name}` was found in the clan with rank `{player.role}`")
                 return
         await context.send(
             f"Player was not found in the clan.\n(if you are sure that `{wot_nick}` is in clan try running !clanRefresh command)")
@@ -50,7 +52,7 @@ class ClanCommandsHandler(commands.Cog, name="Clan Commands"):
         updated_players = 0
         added_players = 0
         for player in players:
-            if self.databaseConnector.is_player_in_db(player.account_name):
+            if self.databaseConnector.is_player_in_db(player.wot_name):
                 dbError = await self.databaseConnector.update_rank(player)
                 if dbError == DatabaseResultCode.OK:
                     updated_players += 1
@@ -114,3 +116,54 @@ class ClanCommandsHandler(commands.Cog, name="Clan Commands"):
             await context.send("You are not linked to any player.")
             return
         await context.send(f"You are linked to player `{nick}`.")
+
+    @commands.command(name="giveMeRole")
+    async def give_me_role(self, context: Context):
+        uid = context.author.id
+        pid = self.databaseConnector.uid_to_pid(str(uid))
+        if pid is None:
+            await context.send("You are not linked to any player.")
+            return
+        role = self.databaseConnector.get_role_from_pid(pid)
+        if role is None:
+            await context.send("You are not in the clan (or database is not refreshed).")
+            return
+        try:
+            for user_roles in context.author.roles:
+                if user_roles.name in clan_roles_to_discord_roles.values():
+                    await context.author.remove_roles(user_roles)
+            role_discord_id = discord.utils.get(context.guild.roles, name=clan_roles_to_discord_roles[role])
+            await context.author.add_roles(role_discord_id)
+        except Exception as e:
+            debug_print(f"Error while giving role to user: {e}", LogType.ERROR)
+            await context.send(f"Woah! Something went wrong! Check my logs!")
+            return
+        await context.send(f"Role `{clan_roles_to_discord_roles[role]}` given!")
+
+    @commands.command(name="giveHimRole")
+    async def give_him_role(self, context: Context, discord_user: discord.User):
+        if self.databaseConnector.get_role_from_pid(
+                self.databaseConnector.uid_to_pid(str(context.author.id))) not in clan_staff_ranks:
+            await context.send("You are not allowed to use this command!")
+            return
+
+        pid = self.databaseConnector.uid_to_pid(str(discord_user.id))
+        if pid is None:
+            await context.send(f"Player linked to `{discord_user}` not found in database.")
+            return
+        player = self.wot_clan_data_fetcher.find_player_data(pid)
+
+        if player.role is None:
+            await context.send(f"Player linked to `{player.wot_name}` not in the clan (or database is not refreshed).")
+            return
+        try:
+            for user_roles in context.guild.get_member(discord_user.id).roles:
+                if user_roles.name in clan_roles_to_discord_roles.values():
+                    await context.author.remove_roles(user_roles)
+            role_discord_id = discord.utils.get(context.guild.roles, name=clan_roles_to_discord_roles[player.role])
+            await context.author.add_roles(role_discord_id)
+        except Exception as e:
+            debug_print(f"Error while giving role to user: {e}", LogType.ERROR)
+            await context.send(f"Woah! Something went wrong! Check my logs!")
+            return
+        await context.send(f"Role `{clan_roles_to_discord_roles[player.role]}` given to `{player.wot_name}`!")

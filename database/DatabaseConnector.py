@@ -51,11 +51,11 @@ class DatabaseConnector:
 
             self.cursor.execute(
                 f"INSERT INTO wot_players (pid, wot_name, role) "
-                f"VALUES ('{playerData.account_id}', '{playerData.account_name}', '{playerData.role}')")
+                f"VALUES ('{playerData.account_id}', '{playerData.wot_name}', '{playerData.role}')")
             self.connection.commit()
 
         except sqlite3.Error as e:
-            debug_print(f"Could not add clan member {playerData.account_name}. {e}", LogType.ERROR)
+            debug_print(f"Could not add clan member {playerData.wot_name}. {e}", LogType.ERROR)
             return DatabaseResultCode(DatabaseResultCode.INTERNAL_ERROR)
         return DatabaseResultCode(DatabaseResultCode.OK)
 
@@ -64,11 +64,11 @@ class DatabaseConnector:
             self.cursor.execute(f"SELECT role FROM wot_players WHERE pid = '{playerData.account_id}'")
             blob = self.cursor.fetchone()
             if blob is None:
-                debug_print(f"Player not found in database. {playerData.account_name}", LogType.WARNING)
+                debug_print(f"Player not found in database. {playerData.wot_name}", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.NOT_FOUND)
 
             if blob[0] == playerData.role:
-                debug_print(f"Player {playerData.account_name} already has the same role.", LogType.INFO)
+                debug_print(f"Player {playerData.wot_name} already has the same role.", LogType.INFO)
                 return DatabaseResultCode(DatabaseResultCode.SKIPPED)
 
             self.cursor.execute(
@@ -76,7 +76,7 @@ class DatabaseConnector:
             self.connection.commit()
 
         except sqlite3.Error as e:
-            debug_print(f"Could not update rank for {playerData.account_name}. {e}", LogType.ERROR)
+            debug_print(f"Could not update rank for {playerData.wot_name}. {e}", LogType.ERROR)
             return DatabaseResultCode(DatabaseResultCode.INTERNAL_ERROR)
 
         return DatabaseResultCode(DatabaseResultCode.OK)
@@ -160,8 +160,22 @@ class DatabaseConnector:
         return self.cursor.fetchone() is not None
 
     def get_player_as_object(self, wot_name: str) -> ClanPlayerData | None:
-        self.cursor.execute(f"SELECT * FROM wot_players WHERE wot_name = '{wot_name}'")
+        self.cursor.execute(f"SELECT pid, wot_name, role FROM wot_players WHERE wot_name = '{wot_name}'")
         blob = self.cursor.fetchone()
         if blob is None:
             return None
-        return ClanPlayerData(blob[1], blob[2], blob[3])
+        return ClanPlayerData(blob[0], blob[1], blob[2])
+
+    def uid_to_pid(self, uid: str) -> str | None:
+        self.cursor.execute(f"SELECT pid FROM wot_pid_to_discord_uid WHERE uid = '{uid}'")
+        blob = self.cursor.fetchone()
+        if blob is None:
+            return None
+        return blob[0]
+
+    def get_role_from_pid(self, pid: str) -> str | None:
+        self.cursor.execute(f"SELECT role FROM wot_players WHERE pid = '{pid}'")
+        blob = self.cursor.fetchone()
+        if blob is None:
+            return None
+        return blob[0]

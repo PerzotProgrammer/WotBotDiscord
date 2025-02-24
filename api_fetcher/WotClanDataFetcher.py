@@ -50,9 +50,9 @@ class WotClanDataFetcher:
     # endregion
     # region Get data methods
 
-    def find_player_data(self, account_name) -> ClanPlayerData | None:
+    def find_player_data(self, wot_name) -> ClanPlayerData | None:
         for player in self.players:
-            if player.account_name == account_name:
+            if player.wot_name == wot_name:
                 return player
         debug_print("Player not found in players. Maybe the player is not in the clan?", LogType.WARNING)
         return None
@@ -81,7 +81,7 @@ class WotClanDataFetcher:
     def print_members_data(self) -> None:
         for player in self.players:
             debug_print(
-                f"Account Name: {player.account_name}\tAccount ID: {player.account_id}\tRole: {player.role}",
+                f"Account Name: {player.wot_name}\tAccount ID: {player.account_id}\tRole: {player.role}",
                 LogType.DATA)
         debug_print("Done printing all members data.", LogType.INFO)
 
@@ -96,6 +96,6 @@ class WotClanDataFetcher:
         for role, players in roles.items():
             debug_print(f"Role: {role}", LogType.DATA)
             for player in players:
-                debug_print(f"Account Name: {player.account_name}", LogType.DATA)
+                debug_print(f"Account Name: {player.wot_name}", LogType.DATA)
         debug_print("Done printing all members grouped by role.", LogType.INFO)
     # endregion

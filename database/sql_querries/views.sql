@@ -34,3 +34,9 @@ create view if not exists wot_players_count_by_role as
 select role, count(pid) as players_count
 from wot_players
 group by role;
+
+
+create view if not exists wot_pid_to_discord_uid as
+select discord_users.uid, wot_players.pid
+from discord_users
+         inner join wot_players on discord_users.pid = wot_players.pid;
