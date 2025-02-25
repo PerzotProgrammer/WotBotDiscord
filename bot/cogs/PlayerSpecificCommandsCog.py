@@ -1,19 +1,22 @@
 from os import getenv
 
-from discord.ext import commands
+from discord.ext.commands import Cog, command, Context
 from singleton_decorator import singleton
 
 from api_fetcher.WotPlayerDataFetcher import WotPlayerDataFetcher
-from utils import timestamp_to_date
+from database.DatabaseConnector import DatabaseConnector
+from globals import clan_roles_localized
+from utils import timestamp_to_date, LogType, debug_print
 
 
 @singleton
-class PlayerCommandsHandler(commands.Cog, name="Player Commands"):
+class PlayerSpecificCommandsCog(Cog, name="Player Specific Commands"):
     def __init__(self, bot):
         self.wot_player_data_fetcher = WotPlayerDataFetcher(getenv("WG_API_KEY"))
         self.bot = bot
+        debug_print("PlayerSpecificCommandsCog initialized.", LogType.INFO)
 
-    @commands.command(name="playerInfo")
+    @command(name="playerInfo")
     async def player_info(self, context, wot_nick: str):
         wot_nick = wot_nick.strip("`")
         player_data = await self.wot_player_data_fetcher.fetch_player_data(wot_nick)
@@ -31,3 +34,14 @@ class PlayerCommandsHandler(commands.Cog, name="Player Commands"):
             msgBuff += (f"Clan: `{player_data.clan_tag}`\n" +
                         f"Role: `{player_data.role}`\n")
         await context.send(msgBuff)
+
+    @command(name="checkMyRank")
+    async def rank_check(self, context: Context):
+        wot_nick = await DatabaseConnector().get_wot_nick_from_discord_id(str(context.author.id))
+        if wot_nick is None:
+            await context.send("You are not linked to any wot account in database.")
+            return
+
+        player = await self.wot_player_data_fetcher.fetch_player_data(wot_nick)
+        await context.send(
+            f"Player `{player.account_name}` was found in the clan with rank `{clan_roles_localized[player.role]}`")

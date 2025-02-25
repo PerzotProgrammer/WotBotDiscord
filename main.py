@@ -3,6 +3,7 @@ from os import getenv
 import discord
 from dotenv import load_dotenv
 
+from api_fetcher.WotClanDataFetcher import WotClanDataFetcher
 from bot.DiscordBot import DiscordBot
 from database.DatabaseConnector import DatabaseConnector
 from utils import debug_print, LogType
@@ -22,6 +23,7 @@ if __name__ == "__main__":
         exit(1)
 
     DatabaseConnector("./database/database.db")
+    WotClanDataFetcher(getenv("WG_API_KEY"), getenv("CLAN_ID"))
     intents = discord.Intents.default()
     intents.message_content = True
     intents.members = True

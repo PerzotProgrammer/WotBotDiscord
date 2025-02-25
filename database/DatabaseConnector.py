@@ -3,11 +3,10 @@ import time
 from datetime import datetime
 from enum import Enum
 
-import discord
+from discord import User
 from singleton_decorator import singleton
 
 from data_models.ClanPlayerData import ClanPlayerData
-from globals import clan_staff_ranks
 from utils import debug_print, LogType
 
 
@@ -28,11 +27,11 @@ class DatabaseConnector:
 
     async def add_advance(self, invoker_discord_id: str) -> DatabaseResultCode:
         try:
-            self.cursor.execute(
-                f"SELECT role FROM wot_players INNER JOIN discord_users ON wot_players.pid = discord_users.pid WHERE uid = {invoker_discord_id}", )
-            blob = self.cursor.fetchone()
-            if blob is None or blob[0] not in clan_staff_ranks:
-                return DatabaseResultCode(DatabaseResultCode.FORBIDDEN)
+            # self.cursor.execute(
+            #     f"SELECT role FROM wot_players INNER JOIN discord_users ON wot_players.pid = discord_users.pid WHERE uid = {invoker_discord_id}", )
+            # blob = self.cursor.fetchone()
+            # if blob is None or blob[0] not in clan_staff_ranks:
+            #     return DatabaseResultCode(DatabaseResultCode.FORBIDDEN)
 
             self.cursor.execute(
                 f"INSERT INTO wot_advances (date, invoker_uid) VALUES ('{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}','{invoker_discord_id}')")
@@ -44,14 +43,14 @@ class DatabaseConnector:
 
     async def add_clan_member(self, playerData: ClanPlayerData) -> DatabaseResultCode:
         try:
-            self.cursor.execute(f"SELECT pid FROM wot_players WHERE pid = '{playerData.account_id}'")
+            self.cursor.execute(f"SELECT pid FROM wot_players WHERE pid = '{playerData.pid}'")
 
             if self.cursor.fetchone() is not None:
                 return DatabaseResultCode(DatabaseResultCode.ALREADY_EXISTS)
 
             self.cursor.execute(
                 f"INSERT INTO wot_players (pid, wot_name, role) "
-                f"VALUES ('{playerData.account_id}', '{playerData.wot_name}', '{playerData.role}')")
+                f"VALUES ('{playerData.pid}', '{playerData.wot_name}', '{playerData.role}')")
             self.connection.commit()
 
         except sqlite3.Error as e:
@@ -61,7 +60,7 @@ class DatabaseConnector:
 
     async def update_rank(self, playerData: ClanPlayerData) -> DatabaseResultCode:
         try:
-            self.cursor.execute(f"SELECT role FROM wot_players WHERE pid = '{playerData.account_id}'")
+            self.cursor.execute(f"SELECT role FROM wot_players WHERE pid = '{playerData.pid}'")
             blob = self.cursor.fetchone()
             if blob is None:
                 debug_print(f"Player not found in database. {playerData.wot_name}", LogType.WARNING)
@@ -72,7 +71,7 @@ class DatabaseConnector:
                 return DatabaseResultCode(DatabaseResultCode.SKIPPED)
 
             self.cursor.execute(
-                f"UPDATE wot_players SET role = '{playerData.role}' WHERE pid = '{playerData.account_id}'")
+                f"UPDATE wot_players SET role = '{playerData.role}' WHERE pid = '{playerData.pid}'")
             self.connection.commit()
 
         except sqlite3.Error as e:
@@ -81,7 +80,7 @@ class DatabaseConnector:
 
         return DatabaseResultCode(DatabaseResultCode.OK)
 
-    async def add_discord_user_ref(self, wot_name: str, discord_user: discord.User) -> DatabaseResultCode:
+    async def add_discord_user_ref(self, wot_name: str, discord_user: User) -> DatabaseResultCode:
         try:
             self.cursor.execute(f"SELECT uid FROM discord_users WHERE uid = '{discord_user.id}'")
 
@@ -103,7 +102,7 @@ class DatabaseConnector:
             return DatabaseResultCode(DatabaseResultCode.INTERNAL_ERROR)
         return DatabaseResultCode(DatabaseResultCode.OK)
 
-    async def register_discord_user_to_adv(self, discord_user: discord.User) -> DatabaseResultCode:
+    async def register_discord_user_to_adv(self, discord_user: User) -> DatabaseResultCode:
         try:
             blob = self.cursor.execute(
                 "SELECT id, wot_advances.date FROM wot_advances ORDER BY id DESC LIMIT 1").fetchone()
@@ -168,6 +167,13 @@ class DatabaseConnector:
 
     def uid_to_pid(self, uid: str) -> str | None:
         self.cursor.execute(f"SELECT pid FROM wot_pid_to_discord_uid WHERE uid = '{uid}'")
+        blob = self.cursor.fetchone()
+        if blob is None:
+            return None
+        return blob[0]
+
+    def pid_to_uid(self, pid: str) -> str | None:
+        self.cursor.execute(f"SELECT uid FROM wot_pid_to_discord_uid WHERE pid = '{pid}'")
         blob = self.cursor.fetchone()
         if blob is None:
             return None

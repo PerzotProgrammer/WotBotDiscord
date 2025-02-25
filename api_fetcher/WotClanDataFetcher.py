@@ -22,7 +22,7 @@ class WotClanDataFetcher:
                         LogType.WARNING)
         else:
             self.players = asyncio.run(self.fetch_clan_members())
-        debug_print("wot_nameWotClanDataFetcher initialized.", LogType.INFO)
+        debug_print("WotClanDataFetcher initialized.", LogType.INFO)
 
     # region API fetching methods
 
@@ -45,7 +45,7 @@ class WotClanDataFetcher:
                         member["account_id"],
                         member["account_name"],
                         member["role"]))
-                debug_print(f"wot_nameClan members fetched, {len(self.players)} results.", LogType.INFO)
+                debug_print(f"Clan members fetched, {len(self.players)} results.", LogType.INFO)
         return self.players
 
     # endregion
@@ -83,27 +83,4 @@ class WotClanDataFetcher:
                 roles[player.role] = [player]
         return roles
 
-    # endregion
-    # region Debugging methods
-
-    def print_members_data(self) -> None:
-        for player in self.players:
-            debug_print(
-                f"Account Name: {player.wot_name}\tAccount ID: {player.account_id}\tRole: {player.role}",
-                LogType.DATA)
-        debug_print("Done printing all members data.", LogType.INFO)
-
-    def print_roles_count(self) -> None:
-        roles = self.get_roles_count()
-        for role, count in roles.items():
-            debug_print(f"Role: {role}\tCount: {count}", LogType.DATA)
-        debug_print("Done printing all roles count.", LogType.INFO)
-
-    def print_grouped_members_by_role(self) -> None:
-        roles = self.group_members_by_role()
-        for role, players in roles.items():
-            debug_print(f"Role: {role}", LogType.DATA)
-            for player in players:
-                debug_print(f"Account Name: {player.wot_name}", LogType.DATA)
-        debug_print("Done printing all members grouped by role.", LogType.INFO)
     # endregion
