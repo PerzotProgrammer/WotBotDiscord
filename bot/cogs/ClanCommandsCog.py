@@ -1,5 +1,6 @@
 import discord
 from discord import User
+from discord.ext import commands
 from discord.ext.commands import Context, Cog, command
 from singleton_decorator import singleton
 
@@ -46,7 +47,8 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
         await context.send(f"Player `{wot_nick}` registered!")
 
     @command(name="optForAdv")
-    async def register_user_for_adv(self, context: Context, discord_user: User):
+    async def register_user_for_adv(self, context: Context):
+        discord_user = context.author
         dbError = await DatabaseConnector().register_discord_user_to_adv(discord_user)
         if dbError != DatabaseResultCode.OK:
             if dbError == DatabaseResultCode.ALREADY_EXISTS:
@@ -85,11 +87,12 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
                     f"Player linked to `{player.wot_name}` not in the clan (or database is not refreshed).")
             return False
         try:
+            member = await commands.MemberConverter().convert(context, str(discord_user.id))
             for user_roles in context.guild.get_member(discord_user.id).roles:
                 if user_roles.name in clan_roles_to_discord_roles.values():
-                    await context.author.remove_roles(user_roles)
+                    await member.remove_roles(user_roles)
             role_discord_id = discord.utils.get(context.guild.roles, name=clan_roles_to_discord_roles[player.role])
-            await context.author.add_roles(role_discord_id)
+            await member.add_roles(role_discord_id)
         except Exception as e:
             debug_print(f"Error while giving role to user: {e}", LogType.ERROR)
             await context.send(f"Woah! Something went wrong! Check my logs!")
