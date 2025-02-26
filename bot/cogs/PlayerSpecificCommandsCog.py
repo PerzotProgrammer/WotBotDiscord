@@ -18,6 +18,11 @@ class PlayerSpecificCommandsCog(Cog, name="Player Specific Commands"):
 
     @command(name="playerInfo")
     async def player_info(self, context, wot_nick: str):
+        """
+        Shows player info.
+        The data is fetched from the Wargaming API.
+        :param wot_nick: World of Tanks nickname.
+        """
         wot_nick = wot_nick.strip("`")
         player_data = await self.wot_player_data_fetcher.fetch_player_data(wot_nick)
 
@@ -37,6 +42,10 @@ class PlayerSpecificCommandsCog(Cog, name="Player Specific Commands"):
 
     @command(name="checkMyRank")
     async def rank_check(self, context: Context):
+        """
+        Shows player rank in the clan.
+        The data is fetched from the Wargaming API (it could be different from data in database, if so, run !clanRefresh command).
+        """
         wot_nick = await DatabaseConnector().get_wot_nick_from_discord_id(str(context.author.id))
         if wot_nick is None:
             await context.send("You are not linked to any wot account in database.")

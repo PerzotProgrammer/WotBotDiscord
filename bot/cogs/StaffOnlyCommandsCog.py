@@ -27,6 +27,13 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
 
     @command(name="clanRefresh")
     async def clan_refresh(self, context: Context):
+        """
+        Refreshes the clan members in the database.
+        The data is fetched from the Wargaming API and copied to database.
+        The invoker must be a staff member (recruitment officer or higher).
+        After running this command, the bot will have the most recent data about the clan members.
+        You will be able to register new users and auto-give them roles.
+        """
 
         if not await self.can_call_command(context):
             await context.send("You are not allowed to use this command!")
@@ -61,6 +68,12 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
 
     @command(name="addAdvance")
     async def add_advance(self, context: Context):
+        """
+        Adds advance to the database.
+        The data is used to track attendance.
+        The invoker must be a staff member (recruitment officer or higher).
+        Use !optForAdv to register to the advance.
+        """
         if not await self.can_call_command(context):
             await context.send("You are not allowed to add advance!")
             return
@@ -73,6 +86,12 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
 
     @command(name="giveHimRole")
     async def give_him_role(self, context: Context, discord_user: User):
+        """
+        Administrative version of !giveMeRole.
+        Gives the clan role to the mentioned user.
+        The invoker must be a staff member (recruitment officer or higher).
+        :param discord_user: @mention of the user to give the role.
+        """
         if not await self.can_call_command(context):
             await context.send("You are not allowed to use this command!")
             return
@@ -80,6 +99,11 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
 
     @command(name="refreshAllRanks")
     async def refresh_all_roles_on_server(self, context: Context):
+        """
+        Refreshes all roles on the server.
+        The invoker must be a staff member (recruitment officer or higher).
+        It will automatically fetch data from the Wargaming API, update database and update roles on discord (!clanRefresh and !giveHimRole for @everyone).
+        """
         if not await self.can_call_command(context):
             await context.send("You are not allowed to use this command!")
             return

@@ -18,6 +18,10 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
 
     @command(name="showAllMembers")
     async def show_members(self, context: Context):
+        """
+        Shows all members in clan.
+        The data is fetched from the Wargaming API.
+        """
         playersData = WotClanDataFetcher().players
         mess = "# MEMBERS IN CLAN\n"
         for player in playersData:
@@ -29,6 +33,14 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
 
     @command(name="register")
     async def register(self, context: Context, wot_nick: str, discord_user: User):
+        """
+        Registers user to the database.
+        It is required to link the user to the player in the database.
+        User will be able to get the role in the discord server and register to the advance
+        to track their attendance.
+        :param wot_nick: World of Tanks nickname. It must be in the clan and database. If it is not, run !clanRefresh
+        :param discord_user: Discord user to link to the player (use @mention).
+        """
         wot_nick = wot_nick.strip("`")
 
         player = WotClanDataFetcher().find_player_data_by_name(wot_nick)
@@ -48,6 +60,11 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
 
     @command(name="optForAdv")
     async def register_user_for_adv(self, context: Context):
+        """
+        Registers user to the advance.
+        User must be linked to the player in the database.
+        Advance must be younger than 15 minutes, else it won't register your attendance.
+        """
         discord_user = context.author
         dbError = await DatabaseConnector().register_discord_user_to_adv(discord_user)
         if dbError != DatabaseResultCode.OK:
@@ -62,6 +79,10 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
 
     @command(name="whoami")
     async def whoami(self, context: Context, discord_user: User):
+        """
+        Shows the player linked to the discord user.
+        :param discord_user: Discord user to check the player (use @mention). If not provided, it will check the invoker.
+        """
         nick = await DatabaseConnector().get_wot_nick_from_discord_id(str(discord_user.id))
         if nick is None:
             await context.send("You are not linked to any player.")
@@ -70,6 +91,12 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
 
     @command(name="giveMeRole")
     async def give_me_role(self, context: Context):
+        """
+        Gives the clan role to the invoker.
+        The invoker must be linked to the player in the database.
+        In the future it will be merged with !register command.
+        There is administrative version of this command called !giveHimRole. It can be used only by staff members.
+        """
         await self.role_give(context, context.author)
 
     @staticmethod
