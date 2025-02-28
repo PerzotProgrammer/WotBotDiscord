@@ -24,8 +24,6 @@ if __name__ == "__main__":
 
     DatabaseConnector("./database/database.db")
     WotClanDataFetcher(getenv("WG_API_KEY"), getenv("CLAN_ID"))
-    intents = discord.Intents.default()
-    intents.message_content = True
-    intents.members = True
+    intents = discord.Intents.all()
     bot = DiscordBot(intents=intents)
     bot.run(getenv("DISCORD_BOT_TOKEN"))

@@ -1,6 +1,7 @@
+from os import getenv
+
 import discord
-from discord import User
-from discord.ext import commands
+from discord import Member
 from discord.ext.commands import Context, Cog, command
 from singleton_decorator import singleton
 
@@ -14,6 +15,7 @@ from utils import debug_print, LogType
 class ClanCommandsCog(Cog, name="Clan Commands"):
     def __init__(self, bot):
         self.bot = bot
+        self.clan_tag = getenv("CLAN_TAG")
         debug_print("ClanCommandsCog initialized.", LogType.INFO)
 
     @command(name="showAllMembers")
@@ -32,9 +34,9 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
             mess += messBuff
 
     @command(name="register")
-    async def register(self, context: Context, wot_nick: str, discord_user: User):
+    async def register(self, context: Context, wot_nick: str, discord_user: Member):
         """
-        Registers user to the database.
+        Registers user to the database, set his nick to wot nick [clan tag] (if not previously changed) and gives him role.
         It is required to link the user to the player in the database.
         User will be able to get the role in the discord server and register to the advance
         to track their attendance.
@@ -56,6 +58,9 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
                 await context.send(f"Player `{wot_nick}` not found in database.\n Run !clanRefresh command manually.")
             return
 
+        await self.role_give(context, discord_user, silent=True)
+        if discord_user.nick is None:
+            await discord_user.edit(nick=f"{wot_nick} [{self.clan_tag}]")
         await context.send(f"Player `{wot_nick}` registered!")
 
     @command(name="optForAdv")
@@ -78,7 +83,7 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
         await context.send("Registered to the newest advance!")
 
     @command(name="whoami")
-    async def whoami(self, context: Context, discord_user: User):
+    async def whoami(self, context: Context, discord_user: Member):
         """
         Shows the player linked to the discord user.
         :param discord_user: Discord user to check the player (use @mention). If not provided, it will check the invoker.
@@ -100,7 +105,7 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
         await self.role_give(context, context.author)
 
     @staticmethod
-    async def role_give(context: Context, discord_user: User, silent=False) -> bool:
+    async def role_give(context: Context, discord_user: Member, silent=False) -> bool:
         pid = DatabaseConnector().uid_to_pid(str(discord_user.id))
         if pid is None:
             if not silent:
@@ -114,12 +119,11 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
                     f"Player linked to `{player.wot_name}` not in the clan (or database is not refreshed).")
             return False
         try:
-            member = await commands.MemberConverter().convert(context, str(discord_user.id))
             for user_roles in context.guild.get_member(discord_user.id).roles:
                 if user_roles.name in clan_roles_to_discord_roles.values():
-                    await member.remove_roles(user_roles)
+                    await discord_user.remove_roles(user_roles)
             role_discord_id = discord.utils.get(context.guild.roles, name=clan_roles_to_discord_roles[player.role])
-            await member.add_roles(role_discord_id)
+            await discord_user.add_roles(role_discord_id)
         except Exception as e:
             debug_print(f"Error while giving role to user: {e}", LogType.ERROR)
             await context.send(f"Woah! Something went wrong! Check my logs!")

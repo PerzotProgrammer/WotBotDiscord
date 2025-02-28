@@ -1,5 +1,6 @@
 from os import getenv
 
+from discord import Member
 from discord.ext.commands import Cog, command, Context
 from singleton_decorator import singleton
 
@@ -17,17 +18,22 @@ class PlayerSpecificCommandsCog(Cog, name="Player Specific Commands"):
         debug_print("PlayerSpecificCommandsCog initialized.", LogType.INFO)
 
     @command(name="playerInfo")
-    async def player_info(self, context, wot_nick: str):
+    async def player_info(self, context, param: Member | str):
         """
         Shows player info.
         The data is fetched from the Wargaming API.
-        :param wot_nick: World of Tanks nickname.
+        Works only with clan players.
+        :param param: World of Tanks nickname or @user.
         """
-        wot_nick = wot_nick.strip("`")
+        if type(param) is Member:
+            print("AWGGAWGAWg")
+            wot_nick = await DatabaseConnector().get_wot_nick_from_discord_id(str(param.id))
+        else:
+            wot_nick = param.strip("`")
         player_data = await self.wot_player_data_fetcher.fetch_player_data(wot_nick)
 
         if player_data is None:
-            await context.send(f"Player `{wot_nick}` not found.")
+            await context.send(f"Player `{param.name}` (nick or @user link) not found.")
             return
 
         msgBuff = (f"# Stats of `{wot_nick}`.\n" +

@@ -3,7 +3,7 @@ import time
 from datetime import datetime
 from enum import Enum
 
-from discord import User
+from discord import Member
 from singleton_decorator import singleton
 
 from data_models.ClanPlayerData import ClanPlayerData
@@ -80,7 +80,7 @@ class DatabaseConnector:
 
         return DatabaseResultCode(DatabaseResultCode.OK)
 
-    async def add_discord_user_ref(self, wot_name: str, discord_user: User) -> DatabaseResultCode:
+    async def add_discord_user_ref(self, wot_name: str, discord_user: Member) -> DatabaseResultCode:
         try:
             self.cursor.execute(f"SELECT uid FROM discord_users WHERE uid = '{discord_user.id}'")
 
@@ -102,7 +102,7 @@ class DatabaseConnector:
             return DatabaseResultCode(DatabaseResultCode.INTERNAL_ERROR)
         return DatabaseResultCode(DatabaseResultCode.OK)
 
-    async def register_discord_user_to_adv(self, discord_user: User) -> DatabaseResultCode:
+    async def register_discord_user_to_adv(self, discord_user: Member) -> DatabaseResultCode:
         try:
             blob = self.cursor.execute(
                 "SELECT id, wot_advances.date FROM wot_advances ORDER BY id DESC LIMIT 1").fetchone()

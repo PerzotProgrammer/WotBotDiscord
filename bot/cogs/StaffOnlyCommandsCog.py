@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from discord import User
+from discord import Member
 from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
 from singleton_decorator import singleton
@@ -82,10 +82,29 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
         if dbError != DatabaseResultCode.OK:
             await context.send("Could not add advance!")
             return
+
         await context.send(f"Advance registered at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}!")
 
+        if context.author.voice is None:
+            await context.send(
+                "You are not connected to a voice channel. Users must be added manually with !optForAdv command.")
+            return
+        membersInVoiceChannel = context.author.voice.channel.members
+        addedMembers = 0
+        for member in membersInVoiceChannel:
+            dbError = await DatabaseConnector().register_discord_user_to_adv(member)
+            if dbError != DatabaseResultCode.OK:
+                if dbError == DatabaseResultCode.NOT_FOUND:
+                    await context.send(
+                        f"User {member.name} is not linked to any player (run !register command on him).")
+                else:
+                    await context.send(f"Could not register {member.name} to the newest advance.")
+                continue
+            addedMembers += 1
+        await context.send(f"Registered {addedMembers} players to advance.")
+
     @command(name="giveHimRole")
-    async def give_him_role(self, context: Context, discord_user: User):
+    async def give_him_role(self, context: Context, discord_user: Member):
         """
         Administrative version of !giveMeRole.
         Gives the clan role to the mentioned user.
@@ -118,7 +137,7 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
             if uid is None:
                 skip_count += 1
                 continue
-            user = await commands.UserConverter().convert(context, str(uid))
+            user = await commands.MemberConverter().convert(context, str(uid))
             if await ClanCommandsCog().role_give(context, user, True):
                 success_count += 1
             else:
