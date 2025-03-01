@@ -3,6 +3,7 @@ from datetime import datetime
 from discord import Member
 from discord.ext import commands
 from discord.ext.commands import Cog, command, Context
+from discord.ext.tasks import loop
 from singleton_decorator import singleton
 
 from api_fetcher.WotClanDataFetcher import WotClanDataFetcher
@@ -21,12 +22,17 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
     @staticmethod
     async def can_call_command(context: Context) -> bool:
         pid = DatabaseConnector().uid_to_pid(str(context.author.id))
-        if DatabaseConnector().get_role_from_pid(pid) not in clan_staff_ranks:
+        if context.message.author.guild_permissions.administrator or DatabaseConnector().get_role_from_pid(
+                pid) not in clan_staff_ranks:
             return False
         return True
 
+    @loop(minutes=5)
+    async def clan_auto_refresh(self):
+        await self.clan_refresh(None)
+
     @command(name="clanRefresh")
-    async def clan_refresh(self, context: Context):
+    async def clan_refresh(self, context: Context | None):
         """
         Refreshes the clan members in the database.
         The data is fetched from the Wargaming API and copied to database.
@@ -35,22 +41,25 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
         You will be able to register new users and auto-give them roles.
         """
 
-        if not await self.can_call_command(context):
-            await context.send("You are not allowed to use this command!")
-            return
+        debug_print("StaffOnlyCommandsCog.clanRefresh() was called", LogType.INFO)
+
+        if context is not None:
+            if not await self.can_call_command(context):
+                await context.send("You are not allowed to use this command!")
+                return
 
         players = await WotClanDataFetcher().fetch_clan_members()
-
-        if len(players) == 0 or players is None:
-            await context.send("I got no results!\nSomething may gone wrong! Check my logs.")
-            return
+        if context is not None:
+            if len(players) == 0 or players is None:
+                await context.send("I got no results!\nSomething may gone wrong! Check my logs.")
+                return
 
         skipped_players = 0
         updated_players = 0
         added_players = 0
         for player in players:
             if DatabaseConnector().is_player_in_db(player.wot_name):
-                dbError = await DatabaseConnector().update_rank(player)
+                dbError = await DatabaseConnector().update_rank(player, context is None)
                 if dbError == DatabaseResultCode.OK:
                     updated_players += 1
             else:
@@ -59,12 +68,19 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
             if dbError != DatabaseResultCode.OK:
                 skipped_players += 1
 
-        await context.send(
-            f"## Ok!\n" +
+        if context is not None:
+            await context.send(
+                f"## Ok!\n" +
+                f"Got {len(players)} players.\n" +
+                f"Updated {updated_players} players.\n" +
+                f"Added {added_players} players.\n" +
+                f"Skipped {skipped_players} players.")
+        debug_print(
+            f"StaffOnlyCommandsCog.clanRefresh() ended with:\n" +
             f"Got {len(players)} players.\n" +
             f"Updated {updated_players} players.\n" +
             f"Added {added_players} players.\n" +
-            f"Skipped {skipped_players} players.")
+            f"Skipped {skipped_players} players.", LogType.DATA)
 
     @command(name="addAdvance")
     async def add_advance(self, context: Context):
@@ -143,3 +159,38 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
             else:
                 skip_count += 1
         await context.send(f"All roles refreshed (with {success_count} successfully and {skip_count} skipped).")
+
+    @command(name="register")
+    async def register(self, context: Context, wot_nick: str, discord_user: Member):
+        """
+        Registers user to the database, set his nick to wot nick [clan tag] (if not previously changed) and gives him role.
+        It is required to link the user to the player in the database.
+        User will be able to get the role in the discord server and register to the advance
+        to track their attendance.
+        :param wot_nick: World of Tanks nickname. It must be in the clan and database. If it is not, run !clanRefresh
+        :param discord_user: Discord user to link to the player (use @mention).
+        """
+
+        if not await self.can_call_command(context):
+            await context.send("You are not allowed to use this command!")
+            return
+
+        wot_nick = wot_nick.strip("`")
+
+        player = WotClanDataFetcher().find_player_data_by_name(wot_nick)
+        if player is None:
+            await context.send(f"Player `{wot_nick}` not found in clan.")
+            return
+
+        dbError = await DatabaseConnector().add_discord_user_ref(wot_nick, discord_user)
+        if dbError != DatabaseResultCode.OK:
+            if dbError == DatabaseResultCode.ALREADY_EXISTS:
+                await context.send(f"User `{discord_user.name}` was already registered!")
+            if dbError == DatabaseResultCode.NOT_FOUND:
+                await context.send(f"Player `{wot_nick}` not found in database.\n Run !clanRefresh command manually.")
+            return
+
+        await ClanCommandsCog().role_give(context, discord_user, silent=True)
+        if discord_user.nick is None:
+            await discord_user.edit(nick=f"{wot_nick} [{ClanCommandsCog().clan_tag}]")
+        await context.send(f"Player `{wot_nick}` registered!")

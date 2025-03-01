@@ -33,36 +33,6 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
                 mess = ""
             mess += messBuff
 
-    @command(name="register")
-    async def register(self, context: Context, wot_nick: str, discord_user: Member):
-        """
-        Registers user to the database, set his nick to wot nick [clan tag] (if not previously changed) and gives him role.
-        It is required to link the user to the player in the database.
-        User will be able to get the role in the discord server and register to the advance
-        to track their attendance.
-        :param wot_nick: World of Tanks nickname. It must be in the clan and database. If it is not, run !clanRefresh
-        :param discord_user: Discord user to link to the player (use @mention).
-        """
-        wot_nick = wot_nick.strip("`")
-
-        player = WotClanDataFetcher().find_player_data_by_name(wot_nick)
-        if player is None:
-            await context.send(f"Player `{wot_nick}` not found in clan.")
-            return
-
-        dbError = await DatabaseConnector().add_discord_user_ref(wot_nick, discord_user)
-        if dbError != DatabaseResultCode.OK:
-            if dbError == DatabaseResultCode.ALREADY_EXISTS:
-                await context.send(f"User `{discord_user.name}` was already registered!")
-            if dbError == DatabaseResultCode.NOT_FOUND:
-                await context.send(f"Player `{wot_nick}` not found in database.\n Run !clanRefresh command manually.")
-            return
-
-        await self.role_give(context, discord_user, silent=True)
-        if discord_user.nick is None:
-            await discord_user.edit(nick=f"{wot_nick} [{self.clan_tag}]")
-        await context.send(f"Player `{wot_nick}` registered!")
-
     @command(name="optForAdv")
     async def register_user_for_adv(self, context: Context):
         """

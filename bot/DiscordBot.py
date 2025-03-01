@@ -18,13 +18,19 @@ class DiscordBot(commands.Bot):
                           ClanCommandsCog(self),
                           StaffOnlyCommandsCog(self),
                           ChatInteractionsCog(self)]
+        self.loops = [StaffOnlyCommandsCog().clan_auto_refresh]
 
         debug_print("Bot is running!...", LogType.INFO)
 
         @self.event
         async def on_ready():
             await self.add_cogs()
+            await self.start_loops()
 
     async def add_cogs(self) -> None:
         for cog in self.cogs_list:
             await self.add_cog(cog)
+
+    async def start_loops(self) -> None:
+        for loop in self.loops:
+            loop.start()

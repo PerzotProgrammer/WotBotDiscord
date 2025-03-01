@@ -58,16 +58,18 @@ class DatabaseConnector:
             return DatabaseResultCode(DatabaseResultCode.INTERNAL_ERROR)
         return DatabaseResultCode(DatabaseResultCode.OK)
 
-    async def update_rank(self, playerData: ClanPlayerData) -> DatabaseResultCode:
+    async def update_rank(self, playerData: ClanPlayerData, silent=False) -> DatabaseResultCode:
         try:
             self.cursor.execute(f"SELECT role FROM wot_players WHERE pid = '{playerData.pid}'")
             blob = self.cursor.fetchone()
             if blob is None:
-                debug_print(f"Player not found in database. {playerData.wot_name}", LogType.WARNING)
+                if not silent:
+                    debug_print(f"Player not found in database. {playerData.wot_name}", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.NOT_FOUND)
 
             if blob[0] == playerData.role:
-                debug_print(f"Player {playerData.wot_name} already has the same role.", LogType.INFO)
+                if not silent:
+                    debug_print(f"Player {playerData.wot_name} already has the same role.", LogType.INFO)
                 return DatabaseResultCode(DatabaseResultCode.SKIPPED)
 
             self.cursor.execute(
