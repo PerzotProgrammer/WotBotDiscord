@@ -94,9 +94,14 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
                     await discord_user.remove_roles(user_roles)
             role_discord_id = discord.utils.get(context.guild.roles, name=clan_roles_to_discord_roles[player.role])
             await discord_user.add_roles(role_discord_id)
+
+        except discord.errors.Forbidden:
+            await context.send(f"I don't have permissions to give role to user {discord_user}")
+            debug_print(f"Bot does not have permissions to give role to user: {player.wot_name}", LogType.ERROR)
+
         except Exception as e:
-            debug_print(f"Error while giving role to user: {e}", LogType.ERROR)
             await context.send(f"Woah! Something went wrong! Check my logs!")
+            debug_print(f"Error while giving role to user: {e}", LogType.ERROR)
             return False
         if not silent:
             await context.send(

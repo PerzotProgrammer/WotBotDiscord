@@ -23,9 +23,9 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
     async def can_call_command(context: Context) -> bool:
         pid = DatabaseConnector().uid_to_pid(str(context.author.id))
         if context.message.author.guild_permissions.administrator or DatabaseConnector().get_role_from_pid(
-                pid) not in clan_staff_ranks:
-            return False
-        return True
+                pid) in clan_staff_ranks:
+            return True
+        return False
 
     @loop(minutes=5)
     async def clan_auto_refresh(self):
@@ -43,6 +43,8 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
 
         debug_print("StaffOnlyCommandsCog.clanRefresh() was called", LogType.INFO)
 
+        await DatabaseConnector().clear_redundancy()
+
         if context is not None:
             if not await self.can_call_command(context):
                 await context.send("You are not allowed to use this command!")
@@ -58,6 +60,7 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
         updated_players = 0
         added_players = 0
         for player in players:
+            await DatabaseConnector().add_pid_to_redundancy(str(player.pid))
             if DatabaseConnector().is_player_in_db(player.wot_name):
                 dbError = await DatabaseConnector().update_rank(player, context is None)
                 if dbError == DatabaseResultCode.OK:
@@ -67,20 +70,23 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
                 added_players += 1
             if dbError != DatabaseResultCode.OK:
                 skipped_players += 1
-
+        deleted_players = await DatabaseConnector().delete_non_redundant_players()
         if context is not None:
             await context.send(
                 f"## Ok!\n" +
                 f"Got {len(players)} players.\n" +
                 f"Updated {updated_players} players.\n" +
                 f"Added {added_players} players.\n" +
-                f"Skipped {skipped_players} players.")
+                f"Skipped {skipped_players} players.\n" +
+                f"Deleted {deleted_players} players.")
         debug_print(
             f"StaffOnlyCommandsCog.clanRefresh() ended with:\n" +
             f"Got {len(players)} players.\n" +
             f"Updated {updated_players} players.\n" +
             f"Added {added_players} players.\n" +
-            f"Skipped {skipped_players} players.", LogType.DATA)
+            f"Skipped {skipped_players} players.\n" +
+            f"Deleted {deleted_players} players."
+            , LogType.DATA)
 
     @command(name="addAdvance")
     async def add_advance(self, context: Context):
@@ -160,7 +166,7 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
                 skip_count += 1
         await context.send(f"All roles refreshed (with {success_count} successfully and {skip_count} skipped).")
 
-    @command(name="register")
+    @command(name="r")
     async def register(self, context: Context, wot_nick: str, discord_user: Member):
         """
         Registers user to the database, set his nick to wot nick [clan tag] (if not previously changed) and gives him role.

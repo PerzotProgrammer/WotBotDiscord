@@ -187,3 +187,20 @@ class DatabaseConnector:
         if blob is None:
             return None
         return blob[0]
+
+    async def add_pid_to_redundancy(self, pid: str) -> None:
+        self.cursor.execute(f"INSERT INTO current_wot_players_pids (pid) VALUES ('{pid}')")
+        self.connection.commit()
+
+    async def clear_redundancy(self) -> None:
+        self.cursor.execute(f"DELETE FROM current_wot_players_pids")
+        self.connection.commit()
+
+    async def delete_non_redundant_players(self) -> int:
+        players_to_delete = self.cursor.execute(
+            f"SELECT COUNT(pid) FROM wot_players WHERE pid NOT IN (SELECT pid FROM current_wot_players_pids);").fetchone()[0]
+        self.cursor.execute("DELETE FROM wot_players WHERE pid NOT IN (SELECT pid FROM current_wot_players_pids)")
+        self.connection.commit()
+        self.cursor.execute(f"DELETE FROM discord_users WHERE pid NOT IN (SELECT pid FROM current_wot_players_pids)")
+        self.connection.commit()
+        return players_to_delete

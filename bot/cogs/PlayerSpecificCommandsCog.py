@@ -26,7 +26,6 @@ class PlayerSpecificCommandsCog(Cog, name="Player Specific Commands"):
         :param param: World of Tanks nickname or @user.
         """
         if type(param) is Member:
-            print("AWGGAWGAWg")
             wot_nick = await DatabaseConnector().get_wot_nick_from_discord_id(str(param.id))
         else:
             wot_nick = param.strip("`")

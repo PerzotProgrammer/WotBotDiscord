@@ -11,7 +11,7 @@ from utils import debug_print, LogType
 @singleton
 class ChatInteractionsCog(Cog, name="Chat Interactions"):
     def __init__(self, bot):
-        self.arty_words = ["arta", "arty"]
+        self.arty_words = ["arta", "arty", "olek"]
         self.arty_respond = ["You sink!", "WTH", "💩", "...", "Bój ci w lufę!"]
         self.bot = bot
         debug_print("ChatInteractionsCog initialized.", LogType.INFO)

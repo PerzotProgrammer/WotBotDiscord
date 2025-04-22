@@ -33,3 +33,8 @@ create table if not exists wot_advances_players
     foreign key (pid) references wot_players (pid),
     foreign key (advance_id) references wot_advances (id)
 );
+
+create table if not exists current_wot_players_pids
+(
+    pid integer primary key not null
+);
