@@ -9,11 +9,11 @@ select wot_name, count(wot_advances_players.id) as advances_count, wot_advances.
 from wot_players
          inner join wot_advances_players on wot_players.pid = wot_advances_players.pid
          inner join wot_advances on wot_advances.id = wot_advances_players.advance_id
-group by wot_name, unixepoch(wot_advances.date);
+group by wot_name, date(wot_advances.date);
 
 
 create view if not exists wot_advances_count_by_players_last_week as
-select wot_name, count(wot_advances_players.id) as advances_count
+select wot_name, wot_players.pid, count(wot_advances_players.id) as advances_count
 from wot_players
          inner join wot_advances_players on wot_players.pid = wot_advances_players.pid
          inner join wot_advances on wot_advances.id = wot_advances_players.advance_id

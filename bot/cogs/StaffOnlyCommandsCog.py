@@ -118,9 +118,9 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
             if dbError != DatabaseResultCode.OK:
                 if dbError == DatabaseResultCode.NOT_FOUND:
                     await context.send(
-                        f"User {member.name} is not linked to any player (run !register command on him).")
+                        f"User `{member.display_name}` is not linked to any player (run !register command on him).")
                 else:
-                    await context.send(f"Could not register {member.name} to the newest advance.")
+                    await context.send(f"Could not register `{member.display_name}` to the newest advance.")
                 continue
             addedMembers += 1
         await context.send(f"Registered {addedMembers} players to advance.")

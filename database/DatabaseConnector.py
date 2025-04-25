@@ -2,6 +2,7 @@ import sqlite3
 import time
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from discord import Member
 from singleton_decorator import singleton
@@ -121,18 +122,19 @@ class DatabaseConnector:
                 debug_print("Newest advance is older than 15 hour.", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.FORBIDDEN)
 
-            player_id = \
+            blob = \
                 self.cursor.execute(
-                    f"SELECT pid FROM discord_users WHERE uid = '{discord_user.id}'").fetchone()[0]
+                    f"SELECT pid FROM discord_users WHERE uid = '{discord_user.id}'").fetchone()
 
-            if player_id is None:
-                debug_print(f"{discord_user.name} is not linked to any player.", LogType.WARNING)
+            if blob is None:
+                debug_print(f"{discord_user.display_name} is not linked to any player.", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.NOT_FOUND)
-
+            player_id = blob[0]
             blob = self.cursor.execute(
                 f"SELECT id FROM wot_advances_players WHERE advance_id = '{newestAdvId}' AND pid = '{player_id}'").fetchone()
             if blob is not None:
-                debug_print(f"Player already registered to newest advance. {discord_user.name}", LogType.WARNING)
+                debug_print(f"Player already registered to newest advance. `{discord_user.display_name}`",
+                            LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.ALREADY_EXISTS)
 
             self.cursor.execute(
@@ -198,9 +200,28 @@ class DatabaseConnector:
 
     async def delete_non_redundant_players(self) -> int:
         players_to_delete = self.cursor.execute(
-            f"SELECT COUNT(pid) FROM wot_players WHERE pid NOT IN (SELECT pid FROM current_wot_players_pids);").fetchone()[0]
+            f"SELECT COUNT(pid) FROM wot_players WHERE pid NOT IN (SELECT pid FROM current_wot_players_pids);").fetchone()[
+            0]
         self.cursor.execute("DELETE FROM wot_players WHERE pid NOT IN (SELECT pid FROM current_wot_players_pids)")
         self.connection.commit()
         self.cursor.execute(f"DELETE FROM discord_users WHERE pid NOT IN (SELECT pid FROM current_wot_players_pids)")
         self.connection.commit()
         return players_to_delete
+
+    async def get_advance_from_discord_id(self, discord_id: str) -> Any | None:
+        try:
+            blob = self.cursor.execute(
+                f"SELECT pid FROM discord_users WHERE uid = '{discord_id}'").fetchone()
+            if blob is None:
+                debug_print(f"Player not found in database. {discord_id}", LogType.WARNING)
+                return None
+            player_id = blob[0]
+            self.cursor.execute(
+                f"SELECT advances_count FROM wot_advances_count_by_players_last_week WHERE pid = '{player_id}'")
+            blob = self.cursor.fetchone()
+            if blob is None:
+                return None
+            return blob[0]
+        except sqlite3.Error as e:
+            debug_print(f"Could not get advance by discord id. {e}", LogType.ERROR)
+            return None

@@ -59,3 +59,15 @@ class PlayerSpecificCommandsCog(Cog, name="Player Specific Commands"):
         player = await self.wot_player_data_fetcher.fetch_player_data(wot_nick)
         await context.send(
             f"Player `{player.account_name}` was found in the clan with rank `{clan_roles_localized[player.role]}`")
+
+    @command(name="myAdv")
+    async def my_adv(self, context: Context):
+        """
+        Shows how many advances player has played in last week.
+        """
+        discord_user = context.author
+        adv = await DatabaseConnector().get_advance_from_discord_id(str(discord_user.id))
+        if adv is None:
+            await context.send("You are not linked to any player.")
+        else:
+            await context.send(f"You have played {adv} advances this week.")
