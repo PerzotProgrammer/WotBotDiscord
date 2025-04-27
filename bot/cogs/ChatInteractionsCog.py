@@ -4,6 +4,7 @@ from discord import Message
 from discord.ext.commands import Cog
 from singleton_decorator import singleton
 
+import globals
 from globals import do_not_print_chat_messages
 from utils import debug_print, LogType
 
@@ -11,8 +12,8 @@ from utils import debug_print, LogType
 @singleton
 class ChatInteractionsCog(Cog, name="Chat Interactions"):
     def __init__(self, bot):
-        self.arty_words = ["arta", "arty", "olek"]
-        self.arty_respond = ["You sink!", "WTH", "💩", "...", "Bój ci w lufę!"]
+        self.arty_words = globals.arty_words
+        self.arty_respond = globals.arty_respond
         self.bot = bot
         debug_print("ChatInteractionsCog initialized.", LogType.INFO)
 

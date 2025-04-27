@@ -67,10 +67,17 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
                     updated_players += 1
             else:
                 dbError = await DatabaseConnector().add_clan_member(player)
-                added_players += 1
+                if dbError == DatabaseResultCode.OK:
+                    added_players += 1
             if dbError != DatabaseResultCode.OK:
                 skipped_players += 1
         deleted_players = await DatabaseConnector().delete_non_redundant_players()
+        players_ids_to_delete_rank = await DatabaseConnector().get_discord_users_ids_to_delete()
+
+        for discord_user_id in players_ids_to_delete_rank:
+            discord_user = context.author.guild.get_member(int(discord_user_id))
+            await ClanCommandsCog().role_give(context, discord_user, True, True)
+
         if context is not None:
             await context.send(
                 f"## Ok!\n" +
@@ -88,7 +95,7 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
             f"Deleted {deleted_players} players."
             , LogType.DATA)
 
-    @command(name="addAdvance")
+    @command(name="addAdv")
     async def add_advance(self, context: Context):
         """
         Adds advance to the database.
@@ -118,7 +125,7 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
             if dbError != DatabaseResultCode.OK:
                 if dbError == DatabaseResultCode.NOT_FOUND:
                     await context.send(
-                        f"User `{member.display_name}` is not linked to any player (run !register command on him).")
+                        f"User `{member.display_name}` is not linked to any player (run !r command on him).")
                 else:
                     await context.send(f"Could not register `{member.display_name}` to the newest advance.")
                 continue
@@ -200,3 +207,25 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
         if discord_user.nick is None:
             await discord_user.edit(nick=f"{wot_nick} [{ClanCommandsCog().clan_tag}]")
         await context.send(f"Player `{wot_nick}` registered!")
+
+    @command(name="optHimAdv")
+    async def register_user_for_adv(self, context: Context, discord_user: Member):
+        """
+        Administrative version of !optForAdv.
+        User must be linked to the player in the database.
+        Advance must be younger than 15 minutes, else it won't register your attendance.
+        """
+        if not await self.can_call_command(context):
+            await context.send("You are not allowed to use this command!")
+            return
+
+        dbError = await DatabaseConnector().register_discord_user_to_adv(discord_user)
+        if dbError != DatabaseResultCode.OK:
+            if dbError == DatabaseResultCode.ALREADY_EXISTS:
+                await context.send("You are already registered to the newest advance.")
+            if dbError == DatabaseResultCode.NOT_FOUND:
+                await context.send("You are not linked to any player.")
+            if dbError == DatabaseResultCode.FORBIDDEN:
+                await context.send("You can't register to advance. Newest advance is older than 15 minutes.")
+            return
+        await context.send("Registered to the newest advance!")

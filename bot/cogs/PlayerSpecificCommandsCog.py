@@ -45,7 +45,7 @@ class PlayerSpecificCommandsCog(Cog, name="Player Specific Commands"):
                         f"Role: `{player_data.role}`\n")
         await context.send(msgBuff)
 
-    @command(name="checkMyRank")
+    @command(name="myRank")
     async def rank_check(self, context: Context):
         """
         Shows player rank in the clan.

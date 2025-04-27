@@ -7,7 +7,7 @@ from singleton_decorator import singleton
 
 from api_fetcher.WotClanDataFetcher import WotClanDataFetcher
 from database.DatabaseConnector import DatabaseConnector, DatabaseResultCode
-from globals import clan_roles_to_discord_roles, clan_roles_localized
+from globals import clan_roles_to_discord_roles, clan_roles_localized, base_clan_rank
 from utils import debug_print, LogType
 
 
@@ -75,12 +75,18 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
         await self.role_give(context, context.author)
 
     @staticmethod
-    async def role_give(context: Context, discord_user: Member, silent=False) -> bool:
+    async def role_give(context: Context, discord_user: Member, silent=False, delete_mode=False) -> bool:
         pid = DatabaseConnector().uid_to_pid(str(discord_user.id))
-        if pid is None:
+        if pid is None and not delete_mode:
             if not silent:
                 await context.send(f"Player linked to `{discord_user.name}` not found in database.")
             return False
+        if delete_mode:
+            await discord_user.remove_roles(*discord_user.roles)
+            if not silent:
+                debug_print(f"Removed ranks of `{discord_user.name}`.", LogType.INFO)
+            return True
+
         player = WotClanDataFetcher().find_player_data_by_pid(pid)
 
         if player.role is None:
@@ -93,7 +99,8 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
                 if user_roles.name in clan_roles_to_discord_roles.values():
                     await discord_user.remove_roles(user_roles)
             role_discord_id = discord.utils.get(context.guild.roles, name=clan_roles_to_discord_roles[player.role])
-            await discord_user.add_roles(role_discord_id)
+            base_clan_rank_id = discord.utils.get(context.guild.roles, name=base_clan_rank)
+            await discord_user.add_roles(role_discord_id, base_clan_rank_id)
 
         except discord.errors.Forbidden:
             await context.send(f"I don't have permissions to give role to user {discord_user}")

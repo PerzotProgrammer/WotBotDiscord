@@ -119,7 +119,7 @@ class DatabaseConnector:
                     int(time.mktime(
                         datetime.strptime(newestAdvDate, '%Y-%m-%d %H:%M:%S')
                                 .timetuple())) > advMaxAge):
-                debug_print("Newest advance is older than 15 hour.", LogType.WARNING)
+                debug_print(f"Newest advance is older than {advMaxAge / 60} minutes.", LogType.WARNING)
                 return DatabaseResultCode(DatabaseResultCode.FORBIDDEN)
 
             blob = \
@@ -204,9 +204,18 @@ class DatabaseConnector:
             0]
         self.cursor.execute("DELETE FROM wot_players WHERE pid NOT IN (SELECT pid FROM current_wot_players_pids)")
         self.connection.commit()
+        return players_to_delete
+
+    async def get_discord_users_ids_to_delete(self) -> list[str]:
+        self.cursor.execute(f"SELECT uid FROM discord_users WHERE pid NOT IN (SELECT pid FROM wot_players)")
+        blob = self.cursor.fetchall()
+        if blob is None:
+            return []
+        return [str(x[0]) for x in blob]
+
+    async def delete_discord_users_not_in_clan(self) -> None:
         self.cursor.execute(f"DELETE FROM discord_users WHERE pid NOT IN (SELECT pid FROM current_wot_players_pids)")
         self.connection.commit()
-        return players_to_delete
 
     async def get_advance_from_discord_id(self, discord_id: str) -> Any | None:
         try:
