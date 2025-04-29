@@ -74,11 +74,10 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
         deleted_players = await DatabaseConnector().delete_non_redundant_players()
         players_ids_to_delete_rank = await DatabaseConnector().get_discord_users_ids_to_delete()
 
-        for discord_user_id in players_ids_to_delete_rank:
-            discord_user = context.author.guild.get_member(int(discord_user_id))
-            await ClanCommandsCog().role_give(context, discord_user, True, True)
-
         if context is not None:
+            for discord_user_id in players_ids_to_delete_rank:
+                discord_user = context.author.guild.get_member(int(discord_user_id))
+                await ClanCommandsCog().role_give(context, discord_user, True, True)
             await context.send(
                 f"## Ok!\n" +
                 f"Got {len(players)} players.\n" +
