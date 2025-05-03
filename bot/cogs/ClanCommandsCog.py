@@ -82,7 +82,9 @@ class ClanCommandsCog(Cog, name="Clan Commands"):
                 await context.send(f"Player linked to `{discord_user.name}` not found in database.")
             return False
         if delete_mode:
-            await discord_user.remove_roles(*discord_user.roles)
+            for role in discord_user.roles:
+                if role.is_assignable():
+                    await discord_user.remove_roles(role)
             if not silent:
                 debug_print(f"Removed ranks of `{discord_user.name}`.", LogType.INFO)
             return True
