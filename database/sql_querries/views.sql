@@ -17,7 +17,7 @@ select wot_name, wot_players.pid, count(wot_advances_players.id) as advances_cou
 from wot_players
          inner join wot_advances_players on wot_players.pid = wot_advances_players.pid
          inner join wot_advances on wot_advances.id = wot_advances_players.advance_id
-where julianday('now') - unixepoch(wot_advances.date) <= 7
+where floor(julianday('now') - julianday(wot_advances.date)) <= 7
 group by wot_name;
 
 
@@ -40,3 +40,13 @@ create view if not exists wot_pid_to_discord_uid as
 select discord_users.uid, wot_players.pid
 from discord_users
          inner join wot_players on discord_users.pid = wot_players.pid;
+
+create view wot_advances_absent_players_last_week as
+select wot_players.wot_name
+from wot_players
+         left join wot_advances_count_by_players_last_week
+                   on wot_players.wot_name = wot_advances_count_by_players_last_week.wot_name
+where wot_advances_count_by_players_last_week.wot_name is null;
+
+create view discord_unlinked_players as
+select discord_users_to_wot_players.wot_name from discord_users_to_wot_players where discord_name is null;

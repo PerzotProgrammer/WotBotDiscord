@@ -234,3 +234,10 @@ class DatabaseConnector:
         except sqlite3.Error as e:
             debug_print(f"Could not get advance by discord id. {e}", LogType.ERROR)
             return None
+
+    async def get_absent_players(self) -> list[str]:
+        self.cursor.execute(f"SELECT wot_name FROM wot_advances_absent_players_last_week")
+        blob = self.cursor.fetchall()
+        if blob is None:
+            return []
+        return [row[0] for row in blob]

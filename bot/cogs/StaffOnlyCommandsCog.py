@@ -228,3 +228,22 @@ class StaffOnlyCommandsCog(Cog, name="Staff only commands"):
                 await context.send("You can't register to advance. Newest advance is older than 15 minutes.")
             return
         await context.send("Registered to the newest advance!")
+
+    @command("absentPlayers")
+    async def absent_players(self, context: Context):
+        """
+        Shows players who haven't played any advance in past week.
+        The invoker must be a staff member (recruitment officer or higher).
+        """
+        if not await self.can_call_command(context):
+            await context.send("You are not allowed to use this command!")
+            return
+
+        players = await DatabaseConnector().get_absent_players()
+        if len(players) == 0:
+            await context.send("## No players where absent!\n## GREAT SUCCESS!!!")
+            return
+        msgBuff = "## Absent players:\n"
+        for player in players:
+            msgBuff += f"`{player}`\n"
+        await context.send(msgBuff)
